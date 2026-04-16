@@ -1,5 +1,70 @@
 # Claude Code Smart Optimizer (CCSO) v3.0.0
 
+> **A smart middleware layer between you and your AI tools — silently saves tokens, routes to cheaper models, and works across every platform.**
+
+CCSO sits between you and Claude Code / Cursor / VS Code / Firebase Studio / Gemini and more.  
+Instead of typing `claude`, type `ccso` — and all the savings happen automatically in the background.
+
+**[עברית למטה ↓](#hebrew)**
+
+---
+
+## What it does
+
+| Feature | Description | Estimated Saving |
+|---|---|---|
+| **Smart model routing** | Simple questions → Haiku (10× cheaper), complex → Opus | up to 90% on simple queries |
+| **Response cache** | Same prompt → cached response, no API call | 100% on repeated prompts |
+| **Code compression** | Strips comments, console.log, blank lines from code blocks | 15–35% per code block |
+| **Log trimming** | Long logs → last 50 lines only | up to 90% on logs |
+| **Large file truncation** | Files >300 lines → smart head+tail | up to 60% |
+| **Deduplication** | Repeated lines removed from prompt | up to 20% |
+| **Politeness stripping** | Removes "please", "thank you", "could you" | ~5% per prompt |
+| **Response length hints** | Short questions get a brevity instruction | saves output tokens |
+| **Auto Git context** | Injects `git status` + diff when debugging | fewer back-and-forth |
+| **Secret scanner** | Warns before you leak API keys | security |
+| **Path resolver** | "fix auth.ts" → `/src/pages/auth.ts` | saves search |
+| **Auto Handoff** | When session cost hits threshold — summarizes, resets | 30–50% per session |
+| **inject command** | Applies savings rules to Cursor, VS Code, Gemini, Firebase | savings on every tool |
+| **Browser dashboard** | Live stats, charts, platform detection, chat | full visibility |
+
+## Quick start
+
+```bash
+git clone https://github.com/igal2004/claude-smart-optimizer.git
+cd claude-smart-optimizer
+node bin/install.js
+```
+
+Then open a new terminal and run:
+
+```bash
+ccso
+```
+
+## Platform support
+
+Works with: **Claude Code · Cursor · Windsurf · VS Code + Copilot · Gemini Code Assist · Firebase Studio · Android Studio · Codex CLI**
+
+Use `ccso inject` inside any project to apply savings rules to all platforms at once.
+
+## Dashboard
+
+```bash
+node src/dashboard/server.js
+# open http://localhost:3847
+```
+
+## Run tests
+
+```bash
+node tests/test.js
+```
+
+---
+
+<a name="hebrew"></a>
+
 > **מכונת מלחמה לחיסכון בעלויות AI — עובד עם Claude Code, Cursor, VS Code, Firebase Studio, Gemini, Android Studio ועוד.**
 
 CCSO הוא שכבת ביניים חכמה שיושבת בין אתה לבין כלי ה-AI שלך. הוא עושה את כל הדברים שאתה אמור לעשות ידנית — אוטומטית, בשקט, ברקע.
