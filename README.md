@@ -2,6 +2,8 @@
 
 > **A smart middleware layer between you and your AI tools — silently saves tokens, routes to cheaper models, and works across every platform.**
 
+[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/vubemodo)
+
 CCSO sits between you and Claude Code / Cursor / VS Code / Firebase Studio / Gemini and more.  
 Instead of typing `claude`, type `ccso` — and all the savings happen automatically in the background.
 
