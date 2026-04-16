@@ -4,10 +4,9 @@
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/vubemodo)
 
-CCSO sits between you and Claude Code / Cursor / VS Code / Firebase Studio / Gemini and more.  
 Instead of typing `claude`, type `ccso` — and all the savings happen automatically in the background.
 
-**[עברית למטה ↓](#hebrew)**
+Works with: **Claude Code · Cursor · Windsurf · VS Code + Copilot · Gemini Code Assist · Firebase Studio · Android Studio · Codex CLI**
 
 ---
 
@@ -16,7 +15,7 @@ Instead of typing `claude`, type `ccso` — and all the savings happen automatic
 | Feature | Description | Estimated Saving |
 |---|---|---|
 | **Smart model routing** | Simple questions → Haiku (10× cheaper), complex → Opus | up to 90% on simple queries |
-| **Response cache** | Same prompt → cached response, no API call | 100% on repeated prompts |
+| **Response cache** | Same prompt → cached response, zero API calls | 100% on repeated prompts |
 | **Code compression** | Strips comments, console.log, blank lines from code blocks | 15–35% per code block |
 | **Log trimming** | Long logs → last 50 lines only | up to 90% on logs |
 | **Large file truncation** | Files >300 lines → smart head+tail | up to 60% |
@@ -26,9 +25,11 @@ Instead of typing `claude`, type `ccso` — and all the savings happen automatic
 | **Auto Git context** | Injects `git status` + diff when debugging | fewer back-and-forth |
 | **Secret scanner** | Warns before you leak API keys | security |
 | **Path resolver** | "fix auth.ts" → `/src/pages/auth.ts` | saves search |
-| **Auto Handoff** | When session cost hits threshold — summarizes, resets | 30–50% per session |
+| **Auto Handoff** | When session cost hits threshold — summarizes and resets | 30–50% per session |
 | **inject command** | Applies savings rules to Cursor, VS Code, Gemini, Firebase | savings on every tool |
 | **Browser dashboard** | Live stats, charts, platform detection, chat | full visibility |
+
+---
 
 ## Quick start
 
@@ -38,17 +39,27 @@ cd claude-smart-optimizer
 node bin/install.js
 ```
 
-Then open a new terminal and run:
+Open a new terminal and run:
 
 ```bash
 ccso
 ```
 
+---
+
 ## Platform support
 
-Works with: **Claude Code · Cursor · Windsurf · VS Code + Copilot · Gemini Code Assist · Firebase Studio · Android Studio · Codex CLI**
-
 Use `ccso inject` inside any project to apply savings rules to all platforms at once.
+
+Creates these files automatically:
+- `CLAUDE.md` — Claude Code
+- `.cursorrules` — Cursor
+- `.windsurfrules` — Windsurf
+- `.github/copilot-instructions.md` — VS Code + Copilot
+- `.ccso_instruction` — Gemini Code Assist
+- `.idx/dev.nix` — Firebase Studio / Project IDX
+
+---
 
 ## Dashboard
 
@@ -56,6 +67,45 @@ Use `ccso inject` inside any project to apply savings rules to all platforms at 
 node src/dashboard/server.js
 # open http://localhost:3847
 ```
+
+---
+
+## REPL commands
+
+```
+/handoff        — save session summary and reset
+/status         — show current session cost and stats
+/cache          — show number of cached responses
+/cache clear    — clear response cache
+/dashboard      — open dashboard in browser
+/history        — show prompt history
+/exit           — quit
+```
+
+---
+
+## Configuration
+
+Edit via `ccso --config` or directly in `~/.config/claude-smart-optimizer/config.json`:
+
+| Setting | Default | Description |
+|---|---|---|
+| `backend` | `claude` | `claude` or `codex` |
+| `translate` | `true` | Auto-translate Hebrew → English |
+| `stripPoliteness` | `true` | Remove filler words |
+| `resolvePaths` | `true` | Resolve relative paths |
+| `trimLogs` | `true` | Trim logs to 50 lines |
+| `codeCompression` | `true` | Compress code blocks |
+| `secretScanner` | `true` | Scan for API keys |
+| `gitContext` | `true` | Inject Git context |
+| `smartRouting` | `true` | Smart model routing |
+| `promptCache` | `true` | Response cache (24h) |
+| `cacheTTLHours` | `24` | Cache TTL in hours |
+| `timeGuard` | `true` | Peak hours warning |
+| `costThreshold` | `0.80` | Auto-handoff cost threshold (USD) |
+| `commandThreshold` | `25` | Auto-handoff command count |
+
+---
 
 ## Run tests
 
@@ -65,171 +115,22 @@ node tests/test.js
 
 ---
 
-<a name="hebrew"></a>
+## Contributing
 
-> **מכונת מלחמה לחיסכון בעלויות AI — עובד עם Claude Code, Cursor, VS Code, Firebase Studio, Gemini, Android Studio ועוד.**
-
-CCSO הוא שכבת ביניים חכמה שיושבת בין אתה לבין כלי ה-AI שלך. הוא עושה את כל הדברים שאתה אמור לעשות ידנית — אוטומטית, בשקט, ברקע.
-
-במקום להקליד `claude`, תקליד `cc` — וכל שאר הקסם קורה ברקע.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get involved. All features on the [ROADMAP](ROADMAP.md) are open for contribution.
 
 ---
 
-## ✨ מה CCSO עושה עבורך?
-
-| פיצ'ר | תיאור | חיסכון משוער |
-|---|---|---|
-| **תרגום שקוף** | מקליד בעברית, קלוד מקבל אנגלית | עד 70% בטוקנים |
-| **הסרת נימוסים** | "בבקשה", "תודה", "האם תוכל" — מוסרים אוטומטית | ~5% לפרומפט |
-| **קיצוץ לוגים** | לוג ארוך? נשלחות רק 50 השורות האחרונות | עד 90% בלוגים |
-| **קיצוץ תוכן גדול** | קבצים מעל 300 שורות מקוצצים חכם (ראש + זנב) | עד 60% בקבצים גדולים |
-| **הסרת כפילויות** | שורות זהות מוסרות מהפרומפט | עד 20% |
-| **דחיסת קוד** | הסרת הערות, console.log, רווחים מיותרים | 15–35% בבלוקי קוד |
-| **רמז אורך תגובה** | שאלות פשוטות מקבלות הנחיית קיצור | חיסכון טוקני פלט |
-| **ניתוב מודל חכם** | Haiku לשאלות פשוטות (10× זול), Opus למורכב | עד 90% לשאלות פשוטות |
-| **מטמון תגובות** | אותו פרומפט = תגובה מהמטמון (ללא API) | 100% לפרומפטים חוזרים |
-| **נתיבים מוחלטים** | "תקן auth.ts" → `/src/pages/auth.ts` | חוסך חיפוש |
-| **ניטור עלויות** | שורת מצב חיה: עלות, פקודות, זמן, חיסכון | מודעות מלאה |
-| **Handoff אוטומטי** | כשהסשן מתייקר — מסכם, מנקה, ומתחיל מחדש | 30–50% לסשן |
-| **הזרקת הקשר Git** | מוסיף `git status` + `diff` אוטומטית לבאגים | פחות הלוך-חזור |
-| **סורק סודות** | מזהיר לפני שאתה חושף API keys | אבטחה |
-| **אזהרת שעות עומס** | מזהיר כשהשרתים עמוסים | מניעת Rate Limits |
-| **inject לכל פלטפורמה** | מחיל חוקי חיסכון על Cursor, VS Code, Gemini, Firebase ועוד | חיסכון בכל כלי |
-| **דשבורד בדפדפן** | סטטיסטיקות, גרפים, פלטפורמות, צ'אט | נראות מלאה |
-
----
-
-## 🚀 התקנה (פקודה אחת)
-
-**דרישות מוקדמות:** Node.js 18+ מותקן על המחשב.
+## Uninstall
 
 ```bash
-# שלב 1: הורד את הפרויקט
-git clone https://github.com/YOUR_USERNAME/ccso.git
-cd ccso
-
-# שלב 2: הרץ את המתקין החכם
-node bin/install.js
+ccso --uninstall
 ```
 
-המתקין יסרוק את המחשב שלך, יזהה אילו כלים מותקנים, ויתקין רק את מה שצריך.
-
-לאחר ההתקנה, פתח טרמינל חדש ותקליד:
-
-```bash
-cc
-```
-
-**זהו. אתה מוכן.**
+Claude Code continues to work normally with the `claude` command.
 
 ---
 
-## 📖 שימוש
+## License
 
-```bash
-cc                    # פתיחת Smart REPL (במקום "claude")
-cc --init             # אשף הגדרת פרויקט (CLAUDE.md + .claudeignore)
-cc --dashboard        # דשבורד ויזואלי בדפדפן
-cc --config           # שינוי הגדרות בתפריט אינטראקטיבי
-cc --status           # הצגת הגדרות נוכחיות
-cc --uninstall        # הסרה מלאה ונקייה
-cc inject [path]      # הזרקת חוקי CCSO לכל הפלטפורמות בפרויקט
-cc eject [path]       # הסרת חוקי CCSO מכל הפלטפורמות
-cc help               # רשימת כל הפקודות
-```
-
-### פקודות בתוך ה-REPL
-
-```
-/handoff        — שמירת סיכום הסשן וניקוי ידני
-/status         — הצגת עלות וסטטוס הסשן הנוכחי
-/cache          — הצגת מספר רשומות במטמון
-/cache clear    — ניקוי מטמון התגובות
-/dashboard      — פתיחת הדשבורד בדפדפן
-/history        — הצגת היסטוריית פרומפטים
-/memory list    — הצגת זיכרון הפרויקט
-/exit           — יציאה
-```
-
-### inject — חיסכון בכל הפלטפורמות
-
-```bash
-cd my-project
-cc inject
-```
-
-יוצר את הקבצים הבאים אוטומטית:
-- `CLAUDE.md` — Claude Code
-- `.cursorrules` — Cursor
-- `.windsurfrules` — Windsurf
-- `.github/copilot-instructions.md` — GitHub Copilot / VS Code
-- `.ccso_instruction` — Gemini Code Assist
-- `.idx/dev.nix` — Firebase Studio / Project IDX
-
-כל הקבצים מכילים חוקים לחיסכון טוקנים: קיצור תגובות, הימנעות מחזרות, עבודה בלוקים קטנים.
-
----
-
-## ⚙️ הגדרות
-
-ניתן לשנות הכל דרך `cc --config` או ישירות בקובץ `~/.config/claude-smart-optimizer/config.json`:
-
-| הגדרה | ברירת מחדל | תיאור |
-|---|---|---|
-| `backend` | `claude` | `claude` או `codex` |
-| `translate` | `true` | תרגום עברית לאנגלית |
-| `stripPoliteness` | `true` | הסרת נימוסים |
-| `resolvePaths` | `true` | המרת נתיבים מוחלטים |
-| `trimLogs` | `true` | קיצוץ לוגים ל-50 שורות |
-| `codeCompression` | `true` | דחיסת בלוקי קוד |
-| `secretScanner` | `true` | סריקת API keys |
-| `gitContext` | `true` | הזרקת הקשר Git |
-| `smartRouting` | `true` | ניתוב מודל חכם |
-| `promptCache` | `true` | מטמון תגובות (24h) |
-| `cacheTTLHours` | `24` | זמן תפוגת מטמון (שעות) |
-| `timeGuard` | `true` | אזהרת שעות עומס |
-| `costThreshold` | `0.80` | סף עלות (USD) ל-Handoff אוטומטי |
-| `commandThreshold` | `25` | מספר פקודות ל-Handoff אוטומטי |
-
----
-
-## 🔧 תמיכה בפלטפורמות
-
-| כלי | תמיכה | אופן עבודה |
-|---|---|---|
-| **Claude Code** | מלאה | REPL שקוף + CLAUDE.md |
-| **Cursor** | מלאה | `cc inject` → .cursorrules |
-| **Windsurf** | מלאה | `cc inject` → .windsurfrules |
-| **VS Code + Copilot** | מלאה | `cc inject` → copilot-instructions.md |
-| **Gemini Code Assist** | מלאה | `cc inject` → .ccso_instruction |
-| **Firebase Studio / IDX** | מלאה | `cc inject` → .idx/dev.nix |
-| **Android Studio** | חלקית | זיהוי אוטומטי + Gemini plugin |
-| **Codex CLI** | מלאה | REPL שקוף |
-
----
-
-## 🗺️ Roadmap
-
-ראה [ROADMAP.md](ROADMAP.md) לרשימת הפיצ'רים המתוכננים. **מפתחים מוזמנים לאמץ פיצ'ר ולממש אותו!**
-
----
-
-## 🤝 תרומה לפרויקט
-
-CCSO הוא פרויקט קוד פתוח שמתוחזק על ידי הקהילה. ראה [CONTRIBUTING.md](CONTRIBUTING.md) לפרטים על איך להצטרף.
-
----
-
-## 🗑️ הסרה
-
-```bash
-cc --uninstall
-```
-
-ההסרה נקייה לחלוטין. Claude Code ממשיך לעבוד כרגיל עם הפקודה `claude`.
-
----
-
-## 📄 רישיון
-
-MIT License — קוד פתוח לשימוש חופשי, לרבות שימוש מסחרי.
+MIT — free for personal and commercial use.
