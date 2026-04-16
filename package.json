@@ -1,0 +1,49 @@
+{
+  "name": "claude-smart-optimizer",
+  "version": "3.0.0",
+  "description": "Smart CLI wrapper for Claude Code, Codex CLI, Cursor & Windsurf — auto-translation, context management, MCP manager, NotebookLM bridge and more.",
+  "main": "src/index.js",
+  "type": "module",
+  "bin": {
+    "ccso": "./bin/cc.js",
+    "smart-optimizer": "./bin/install.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "install-tool": "node bin/install.js",
+    "uninstall-tool": "node bin/uninstall.js",
+    "init": "node bin/init.js",
+    "mcp": "node bin/mcp.js",
+    "notebooklm": "node bin/notebooklm.js",
+    "dashboard": "node src/dashboard/server.js",
+    "test": "node tests/test.js"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "codex",
+    "cursor",
+    "windsurf",
+    "ai",
+    "cli",
+    "optimizer",
+    "tokens",
+    "mcp",
+    "notebooklm"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "conf": "^12.0.0",
+    "express": "^5.2.1",
+    "inquirer": "^9.2.12",
+    "node-fetch": "^3.3.2",
+    "ora": "^7.0.1",
+    "which": "^4.0.0"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.44.0",
+    "clipboardy": "^4.0.0"
+  }
+}

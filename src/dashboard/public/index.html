@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CCSO v3.0 — Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --text:     #e6edf3;
+      --muted:    #7d8590;
+      --green:    #3fb950;
+      --blue:     #58a6ff;
+      --yellow:   #d29922;
+      --red:      #f85149;
+      --purple:   #bc8cff;
+      --cyan:     #39d353;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    .layout { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: 220px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 10;
+    }
+
+    .logo {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .logo h1 { font-size: 18px; font-weight: 700; color: var(--blue); }
+    .logo .ver { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      font-size: 14px;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 0;
+      transition: background 0.15s, color 0.15s;
+      text-decoration: none;
+    }
+    .nav-item:hover { background: #21262d; color: var(--text); }
+    .nav-item.active { color: var(--blue); background: #1f2d3d; border-right: 2px solid var(--blue); }
+    .nav-icon { font-size: 16px; }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Main ── */
+    .main {
+      margin-right: 220px;
+      flex: 1;
+      padding: 28px;
+      overflow-y: auto;
+    }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .page-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .page-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    /* ── Cards ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+    }
+    .card .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+    .card .val { font-size: 26px; font-weight: 700; color: var(--text); }
+    .card .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .card.green .val { color: var(--green); }
+    .card.blue .val  { color: var(--blue); }
+    .card.yellow .val{ color: var(--yellow); }
+    .card.red .val   { color: var(--red); }
+    .card.purple .val{ color: var(--purple); }
+
+    /* ── Section box ── */
+    .box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .box h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    /* ── Charts ── */
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    @media (max-width: 860px) { .charts { grid-template-columns: 1fr; } }
+    canvas { max-height: 200px; }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: right; color: var(--muted); font-weight: 500; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
+    td { padding: 10px 12px; border-bottom: 1px solid #161b22; color: #adbac7; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #1c2128; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .pill.yes { background: #1a3a26; color: var(--green); }
+    .pill.no  { background: var(--surface); color: var(--muted); }
+
+    /* ── Platforms Grid ── */
+    .platforms-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .platform-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 0.2s;
+    }
+    .platform-card.detected { border-color: var(--green); }
+    .platform-card.not-detected { opacity: 0.5; }
+    .platform-card .p-icon { font-size: 28px; }
+    .platform-card .p-name { font-size: 15px; font-weight: 600; }
+    .platform-card .p-status {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      display: inline-block;
+      width: fit-content;
+    }
+    .platform-card.detected .p-status { background: #1a3a26; color: var(--green); }
+    .platform-card.not-detected .p-status { background: #2d1b1b; color: var(--red); }
+    .platform-card .p-desc { font-size: 12px; color: var(--muted); }
+
+    /* ── Features Grid ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .feature-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .feature-item .f-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+    .feature-item .f-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .feature-item .f-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .feature-item .f-badge {
+      margin-top: 8px;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      display: inline-block;
+    }
+    .f-auto { background: #1a2a3a; color: var(--blue); }
+    .f-manual { background: #1a2a1a; color: var(--green); }
+
+    /* ── Chat ── */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 160px);
+      min-height: 500px;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px 10px 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .msg {
+      max-width: 80%;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .msg.user {
+      background: #1f2d3d;
+      border: 1px solid #2d4a6b;
+      color: var(--blue);
+      align-self: flex-end;
+    }
+    .msg.assistant {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      align-self: flex-start;
+    }
+    .msg.system {
+      background: #1a2a1a;
+      border: 1px solid #2d4a2d;
+      color: var(--green);
+      align-self: center;
+      font-size: 12px;
+      max-width: 100%;
+      text-align: center;
+    }
+    .msg.error {
+      background: #2d1b1b;
+      border: 1px solid #4a2d2d;
+      color: var(--red);
+      align-self: center;
+      font-size: 12px;
+    }
+    .msg .msg-meta { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+    .chat-input-area {
+      display: flex;
+      gap: 10px;
+      padding: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+    }
+    .chat-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      min-height: 44px;
+      max-height: 120px;
+      direction: auto;
+    }
+    .chat-input:focus { border-color: var(--blue); }
+    .send-btn {
+      background: var(--blue);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      align-self: flex-end;
+      transition: opacity 0.15s;
+    }
+    .send-btn:hover { opacity: 0.85; }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .chat-info {
+      display: flex;
+      gap: 16px;
+      padding: 10px 0;
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .chat-info span { display: flex; align-items: center; gap: 4px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* ── Refresh button ── */
+    .btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn:hover { background: #21262d; color: var(--text); }
+
+    .demo-banner {
+      background: #261a00;
+      border: 1px solid #d2992244;
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: var(--yellow);
+      display: none;
+    }
+
+    /* ── Typing indicator ── */
+    .typing { display: flex; gap: 5px; padding: 14px 16px; align-items: center; }
+    .typing span {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--muted);
+      animation: bounce 1.2s infinite;
+    }
+    .typing span:nth-child(2) { animation-delay: .2s; }
+    .typing span:nth-child(3) { animation-delay: .4s; }
+    @keyframes bounce { 0%, 80%, 100% { transform: scale(0.7); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="logo">
+      <h1>⚡ CCSO</h1>
+      <div class="ver">v3.0.0 — Smart Optimizer</div>
+    </div>
+
+    <a class="nav-item active" onclick="showPage('stats')" href="#">
+      <span class="nav-icon">📊</span> סטטיסטיקות
+    </a>
+    <a class="nav-item" onclick="showPage('platforms')" href="#">
+      <span class="nav-icon">🔌</span> פלטפורמות
+    </a>
+    <a class="nav-item" onclick="showPage('features')" href="#">
+      <span class="nav-icon">⚙️</span> פיצ'רים
+    </a>
+    <a class="nav-item" onclick="showPage('chat')" href="#">
+      <span class="nav-icon">💬</span> שלח פרומפט
+    </a>
+
+    <div class="sidebar-footer">
+      CCSO v3.0.0<br>
+      <span id="lastUpdate" style="font-size:10px;">—</span>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- ── Page: Stats ── -->
+    <div class="page active" id="page-stats">
+      <div class="page-title">📊 סטטיסטיקות שימוש</div>
+      <div class="page-sub">נתוני עלות, חיסכון וביצועים ב-30 הימים האחרונים</div>
+
+      <div class="demo-banner" id="demoBanner">
+        ⚠️ מוצגים נתוני הדגמה — הנתונים האמיתיים שלך יופיעו לאחר שתתחיל לעבוד עם <code>ccso</code>
+      </div>
+
+      <div class="cards">
+        <div class="card red">
+          <div class="lbl">עלות כוללת</div>
+          <div class="val" id="totalCost">—</div>
+          <div class="hint">דולר אמריקאי</div>
+        </div>
+        <div class="card green">
+          <div class="lbl">חיסכון משוער</div>
+          <div class="val" id="totalSaved">—</div>
+          <div class="hint">בזכות ניתוב חכם + כיווץ</div>
+        </div>
+        <div class="card blue">
+          <div class="lbl">פקודות סה"כ</div>
+          <div class="val" id="totalCommands">—</div>
+          <div class="hint">פרומפטים שנשלחו</div>
+        </div>
+        <div class="card yellow">
+          <div class="lbl">Handoffs</div>
+          <div class="val" id="totalHandoffs">—</div>
+          <div class="hint">ניקויי סשן</div>
+        </div>
+        <div class="card purple">
+          <div class="lbl">סשנים</div>
+          <div class="val" id="totalSessions">—</div>
+          <div class="hint">סשנים שהושלמו</div>
+        </div>
+        <div class="card green">
+          <div class="lbl">טוקנים שנחסכו</div>
+          <div class="val" id="totalTokens">—</div>
+          <div class="hint">תרגום + כיווץ + ניתוב</div>
+        </div>
+      </div>
+
+      <div class="charts">
+        <div class="box" style="margin:0">
+          <h2>עלות יומית ($)</h2>
+          <canvas id="costChart"></canvas>
+        </div>
+        <div class="box" style="margin:0">
+          <h2>חיסכון יומי ($)</h2>
+          <canvas id="savingsChart"></canvas>
+        </div>
+      </div>
+
+      <div class="box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h2 style="margin:0">סשנים אחרונים</h2>
+          <button class="btn" onclick="loadAll()">↻ רענן</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>תאריך ושעה</th>
+              <th>עלות ($)</th>
+              <th>חיסכון ($)</th>
+              <th>טוקנים נחסכו</th>
+              <th>מודל</th>
+              <th>פקודות</th>
+              <th>משך</th>
+              <th>Handoff</th>
+            </tr>
+          </thead>
+          <tbody id="sessionsTable">
+            <tr><td colspan="6" style="text-align:center;color:var(--muted)">טוען...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Page: Platforms ── -->
+    <div class="page" id="page-platforms">
+      <div class="page-title">🔌 פלטפורמות נתמכות</div>
+      <div class="page-sub">כלי AI שזוהו במחשב שלך ונתמכים על ידי CCSO</div>
+
+      <div class="platforms-grid" id="platformsGrid">
+        <!-- filled by JS -->
+      </div>
+
+      <div class="box">
+        <h2>איך עובד החיבור לפלטפורמות?</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px;line-height:1.7;color:var(--muted)">
+          <div>
+            <div style="color:var(--text);font-weight:600;margin-bottom:6px">Claude Code</div>
+            CCSO שולח את הפרומפט לקלוד דרך <code style="background:#21262d;padding:1px 5px;border-radius:4px">claude --print</code> —
+            המצב הלא-אינטראקטיבי של ה-CLI. התוצאה חוזרת ישירות לטרמינל.
+          </div>
+          <div>
+            <div style="color:var(--text);font-weight:600;margin-bottom:6px">Cursor / Windsurf</div>
+            CCSO מזריק את הקונטקסט (Git, זיכרון, תרגום) לפרומפט לפני שהוא מגיע ל-IDE.
+            תמיכה מלאה בשלב הבא.
+          </div>
+          <div>
+            <div style="color:var(--text);font-weight:600;margin-bottom:6px">Codex CLI</div>
+            תמיכה דרך <code style="background:#21262d;padding:1px 5px;border-radius:4px">codex</code> CLI —
+            מחליף את ה-backend ב-<code style="background:#21262d;padding:1px 5px;border-radius:4px">/status</code> בתוך CCSO.
+          </div>
+          <div>
+            <div style="color:var(--text);font-weight:600;margin-bottom:6px">NotebookLM</div>
+            גשר אוטומטי — ייצוא סיכום CCSO לפורמט שמתאים להדבקה ב-NotebookLM.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Page: Features ── -->
+    <div class="page" id="page-features">
+      <div class="page-title">⚙️ פיצ'רים פעילים</div>
+      <div class="page-sub">כל הפונקציות שרצות אוטומטית (ויכולות להיות כבויות) + פקודות ידניות</div>
+
+      <div style="margin-bottom:16px">
+        <span style="font-size:12px;color:var(--muted);margin-left:16px">
+          <span style="background:#1a2a3a;color:var(--blue);padding:2px 8px;border-radius:10px;font-size:11px">אוטומטי</span>
+          — פועל על כל פרומפט ללא פעולה
+        </span>
+        <span style="font-size:12px;color:var(--muted)">
+          <span style="background:#1a2a1a;color:var(--green);padding:2px 8px;border-radius:10px;font-size:11px">ידני</span>
+          — מופעל על ידי פקודה
+        </span>
+      </div>
+
+      <div class="features-grid" id="featuresGrid">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <!-- ── Page: Chat ── -->
+    <div class="page" id="page-chat">
+      <div class="page-title">💬 שלח פרומפט</div>
+      <div class="page-sub">שלח פרומפטים לקלוד ישירות מהדפדפן — עם כל הפיצ'רים של CCSO</div>
+
+      <div class="chat-info">
+        <span><div class="dot"></div> CCSO מחובר</span>
+        <span>🤖 Backend: <strong id="chatBackend" style="color:var(--blue)">claude</strong></span>
+        <span>🌐 תרגום: <strong style="color:var(--green)">פעיל</strong></span>
+        <span>🧠 ניתוב חכם: <strong style="color:var(--green)">פעיל</strong></span>
+      </div>
+
+      <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg system">
+            ברוך הבא! כתוב פרומפט בעברית או אנגלית — CCSO יעבד אותו אוטומטית ויעביר לקלוד.
+            <br>תמיכה ב-/template, /memory, /history וכל שאר הפקודות.
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <textarea
+            class="chat-input"
+            id="chatInput"
+            placeholder="כתוב פרומפט בעברית או אנגלית... (Enter = שלח, Shift+Enter = שורה חדשה)"
+            rows="1"
+          ></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendPrompt()">שלח ▶</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ── Navigation ────────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item')[['stats','platforms','features','chat'].indexOf(name)]
+    ?.classList.add('active');
+
+  if (name === 'platforms') renderPlatforms();
+  if (name === 'features')  renderFeatures();
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+let costChart, savingsChart;
+
+async function loadAll() {
+  await Promise.all([loadStats(), loadDaily(), loadSessions()]);
+  document.getElementById('lastUpdate').textContent = 'עודכן: ' + new Date().toLocaleTimeString('he-IL');
+}
+
+async function loadStats() {
+  try {
+    const d = await fetch('/api/stats').then(r => r.json());
+    if (d.empty) return;
+    if (d._demo) document.getElementById('demoBanner').style.display = 'block';
+    document.getElementById('totalCost').textContent     = fmtUSD(d.totalCost || 0);
+    document.getElementById('totalSaved').textContent    = fmtUSD(d.estimatedSavingsUSD || 0);
+    document.getElementById('totalCommands').textContent = (d.totalCommands || 0).toLocaleString();
+    document.getElementById('totalHandoffs').textContent = (d.totalHandoffs || 0).toLocaleString();
+    document.getElementById('totalSessions').textContent = (d.totalSessions || 0).toLocaleString();
+    document.getElementById('totalTokens').textContent   = fmt(d.totalTokensSaved || 0);
+  } catch(e) { console.error(e); }
+}
+
+async function loadDaily() {
+  try {
+    const data = await fetch('/api/daily').then(r => r.json());
+    const labels = data.map(d => d.date.substring(5));
+    const base = {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#7d8590', maxTicksLimit: 7 }, grid: { color: '#21262d' } },
+        y: { ticks: { color: '#7d8590' }, grid: { color: '#30363d' } }
+      }
+    };
+    if (costChart) costChart.destroy();
+    costChart = new Chart(document.getElementById('costChart'), {
+      type: 'bar',
+      data: { labels, datasets: [{ data: data.map(d => d.cost), backgroundColor: '#f8514955', borderColor: '#f85149', borderWidth: 1, borderRadius: 4 }] },
+      options: { ...base }
+    });
+    if (savingsChart) savingsChart.destroy();
+    savingsChart = new Chart(document.getElementById('savingsChart'), {
+      type: 'line',
+      data: { labels, datasets: [{ data: data.map(d => d.saved), borderColor: '#3fb950', backgroundColor: '#3fb95022', fill: true, tension: 0.4, pointRadius: 2 }] },
+      options: { ...base }
+    });
+  } catch(e) { console.error(e); }
+}
+
+async function loadSessions() {
+  try {
+    const data = await fetch('/api/sessions').then(r => r.json());
+    const tbody = document.getElementById('sessionsTable');
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">אין סשנים עדיין</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(s => {
+      const modelShort = (s.model||'').includes('haiku') ? 'Haiku' : (s.model||'').includes('opus') ? 'Opus' : 'Sonnet';
+      const modelColor = modelShort === 'Haiku' ? '#3fb950' : modelShort === 'Opus' ? '#bc8cff' : '#58a6ff';
+      return `
+      <tr>
+        <td>${s.date}</td>
+        <td>$${(s.cost||0).toFixed(4)}</td>
+        <td style="color:#3fb950">${fmtUSD(s.dollarsSaved||0)}</td>
+        <td>${fmt(s.tokensSaved)}</td>
+        <td><span style="color:${modelColor};font-size:11px">${modelShort}</span></td>
+        <td>${s.commands}</td>
+        <td>${s.duration}</td>
+        <td><span class="pill ${s.handoff === 'כן' ? 'yes' : 'no'}">${s.handoff}</span></td>
+      </tr>`;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+// ── Platforms ─────────────────────────────────────────────────────────────────
+const PLATFORMS = [
+  {
+    id: 'claude', icon: '🤖', name: 'Claude Code',
+    desc: 'ה-backend הראשי — שולח פרומפטים דרך claude --print',
+    cmd: 'claude'
+  },
+  {
+    id: 'cursor', icon: '🖱️', name: 'Cursor',
+    desc: 'IDE חכם — CCSO מזריק קונטקסט Git וזיכרון לפני כל prompt',
+    cmd: 'cursor'
+  },
+  {
+    id: 'codex', icon: '🟢', name: 'OpenAI Codex CLI',
+    desc: 'אלטרנטיבה ל-Claude Code — backend חלופי דרך codex CLI',
+    cmd: 'codex'
+  },
+  {
+    id: 'windsurf', icon: '🏄', name: 'Windsurf',
+    desc: 'IDE מבוסס Codeium — תמיכה מלאה בניתוב קונטקסט',
+    cmd: 'windsurf'
+  },
+  {
+    id: 'vscode', icon: '💙', name: 'VS Code',
+    desc: 'עורך הקוד הפופולרי — תמיכה דרך תוסף Claude + Cursor',
+    cmd: 'code'
+  },
+  {
+    id: 'gemini', icon: '✨', name: 'Gemini Code Assist',
+    desc: 'כלי AI של גוגל לפיתוח קוד — extension ב-VS Code ו-JetBrains',
+    cmd: null
+  },
+  {
+    id: 'firebase', icon: '🔥', name: 'Firebase Studio',
+    desc: 'סביבת פיתוח בדפדפן של גוגל — מזוהה דרך Firebase CLI',
+    cmd: 'firebase'
+  },
+  {
+    id: 'androidstudio', icon: '🤖', name: 'Android Studio',
+    desc: 'IDE של גוגל לאנדרואיד — כולל Gemini AI מובנה',
+    cmd: null
+  },
+  {
+    id: 'notebooklm', icon: '📒', name: 'NotebookLM',
+    desc: 'גשר ייצוא — שמירת סיכומי CCSO בפורמט NotebookLM',
+    cmd: null
+  },
+];
+
+async function renderPlatforms() {
+  let detected = [];
+  try {
+    const r = await fetch('/api/platforms');
+    if (r.ok) detected = await r.json();
+  } catch {
+    detected = ['claude', 'cursor']; // fallback
+  }
+
+  const grid = document.getElementById('platformsGrid');
+  grid.innerHTML = PLATFORMS.map(p => {
+    const found = p.cmd === null ? false : detected.includes(p.id);
+    return `
+      <div class="platform-card ${found ? 'detected' : 'not-detected'}">
+        <div class="p-icon">${p.icon}</div>
+        <div class="p-name">${p.name}</div>
+        <div class="p-status">${found ? '✓ זוהה' : '✗ לא נמצא'}</div>
+        <div class="p-desc">${p.desc}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── Features ──────────────────────────────────────────────────────────────────
+const FEATURES = [
+  { icon: '🌐', title: 'תרגום עברית → אנגלית', type: 'auto',
+    desc: 'כל פרומפט בעברית מתורגם אוטומטית לאנגלית לפני שליחה לקלוד. חוסך ~30% טוקנים כי אנגלית קצרה יותר.' },
+  { icon: '🧠', title: 'ניתוב מודל חכם', type: 'auto',
+    desc: 'שאלות פשוטות → Haiku (10× זול), קוד/ארכיטקטורה → Opus, ברירת מחדל → Sonnet. חוסך עד 90% עלות.' },
+  { icon: '📦', title: 'כיווץ קוד', type: 'auto',
+    desc: 'כשמדביקים קוד בפרומפט, CCSO מסיר הערות ושורות ריקות. מקטין את הקוד ב-20-40% בממוצע.' },
+  { icon: '🔑', title: 'סורק מפתחות API', type: 'auto',
+    desc: 'לפני שליחה, סורק את הפרומפט לאיתור API keys, סיסמאות, ומפתחות AWS/OpenAI. מזהיר לפני שיגיע לקלוד.' },
+  { icon: '🌿', title: 'Git Context אוטומטי', type: 'auto',
+    desc: 'כשכותבים "תקן", "באג", "commit" — CCSO מוסיף git status + git diff אוטומטית לפרומפט.' },
+  { icon: '✂️', title: 'ניקוי פוליטנס', type: 'auto',
+    desc: 'מסיר "אנא", "בבקשה", "תודה" מהפרומפט. כל טוקן חסך = כסף שנחסך.' },
+  { icon: '🧩', title: 'זיכרון חוצה-סשן', type: 'manual',
+    desc: 'שמור עובדות על הפרויקט שקלוד יזכור בסשנים הבאים.\n/memory add "endpoint הוא /api/users"' },
+  { icon: '📜', title: 'היסטוריית פרומפטים', type: 'manual',
+    desc: 'כל פרומפט נשמר ואפשר לחפש בו.\n/history | /history search "react"' },
+  { icon: '📝', title: '8 תבניות מוכנות', type: 'manual',
+    desc: 'תבניות מוכנות לבאגים, code review, refactor, טסטים, תיעוד, אבטחה ועוד.\n/template | /template bug' },
+  { icon: '📄', title: 'חיתוך קבצים גדולים', type: 'auto',
+    desc: 'כשמדביקים קובץ עם יותר מ-300 שורות, CCSO שומר 150 ראשונות + 50 אחרונות. חוסך אלפי טוקנים.' },
+  { icon: '🔁', title: 'הסרת תוכן כפול', type: 'auto',
+    desc: 'מזהה ומסיר שורות/משפטים כפולים בפרומפט ארוך. שכיח בהדבקת לוגים או קוד.' },
+  { icon: '📏', title: 'הגבלת אורך תגובה', type: 'auto',
+    desc: 'לשאלות פשוטות ("מה זה X", "האם Y") מוסיף אוטומטית הגבלה — "ענה ב-2 משפטים". חוסך 100-150 טוקני פלט.' },
+  { icon: '🔄', title: 'Handoff אוטומטי', type: 'auto',
+    desc: 'כשמגיעים לסף עלות/פקודות, CCSO שומר סיכום ומנקה את הסשן אוטומטית.' },
+  { icon: '⏰', title: 'TimeGuard', type: 'auto',
+    desc: 'מעקב אחרי זמן הסשן ומתריע כשרצים יותר מ-2 שעות ברצף.' },
+  { icon: '🎛️', title: 'Dashboard בדפדפן', type: 'manual',
+    desc: 'מסך זה! מציג עלויות, חיסכון לפי פיצ\'ר, פלטפורמות ויכולת שליחת פרומפטים.\nccso --dashboard' },
+];
+
+function renderFeatures() {
+  document.getElementById('featuresGrid').innerHTML = FEATURES.map(f => `
+    <div class="feature-item">
+      <div class="f-icon">${f.icon}</div>
+      <div>
+        <div class="f-title">${f.title}</div>
+        <div class="f-desc">${f.desc.replace(/\n/g, '<br>')}</div>
+        <div class="f-badge ${f.type === 'auto' ? 'f-auto' : 'f-manual'}">
+          ${f.type === 'auto' ? 'אוטומטי' : 'ידני'}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+const chatMessages = document.getElementById('chatMessages');
+const chatInput    = document.getElementById('chatInput');
+const sendBtn      = document.getElementById('sendBtn');
+
+// load backend name
+fetch('/api/stats').then(r => r.json()).then(d => {
+  if (d.backend) document.getElementById('chatBackend').textContent = d.backend;
+}).catch(() => {});
+
+chatInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendPrompt(); }
+});
+
+// auto-resize textarea
+chatInput.addEventListener('input', () => {
+  chatInput.style.height = 'auto';
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+});
+
+async function sendPrompt() {
+  const text = chatInput.value.trim();
+  if (!text || sendBtn.disabled) return;
+
+  appendMsg('user', text);
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  sendBtn.disabled = true;
+
+  // Typing indicator
+  const typingId = 'typing-' + Date.now();
+  chatMessages.insertAdjacentHTML('beforeend', `
+    <div class="msg assistant" id="${typingId}" style="padding:14px 16px">
+      <div class="typing"><span></span><span></span><span></span></div>
+    </div>`);
+  scrollBottom();
+
+  try {
+    const res = await fetch('/api/prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: text })
+    });
+
+    document.getElementById(typingId)?.remove();
+
+    if (!res.ok) throw new Error('שגיאת שרת ' + res.status);
+    const data = await res.json();
+
+    if (data.warnings?.length) {
+      data.warnings.forEach(w => appendMsg('system', '⚠️ ' + w));
+    }
+    if (data.model) {
+      appendMsg('system', `🤖 מודל: ${data.model} | 🌐 תורגם: ${data.translated ? 'כן' : 'לא'}`);
+    }
+    appendMsg('assistant', data.response || '(אין תגובה)');
+  } catch(e) {
+    document.getElementById(typingId)?.remove();
+    appendMsg('error', '❌ שגיאה: ' + e.message + '\n\nודא ש-ccso --dashboard פועל עם claude מחובר.');
+  }
+
+  sendBtn.disabled = false;
+  scrollBottom();
+}
+
+function appendMsg(type, text) {
+  const el = document.createElement('div');
+  el.className = 'msg ' + type;
+  el.textContent = text;
+  chatMessages.appendChild(el);
+  scrollBottom();
+}
+
+function scrollBottom() {
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmt(n) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'K';
+  return String(n);
+}
+
+function fmtUSD(n) {
+  if (n >= 1)       return '$' + n.toFixed(2);
+  if (n >= 0.01)    return '$' + n.toFixed(4);
+  if (n >= 0.001)   return '$' + n.toFixed(5);
+  if (n >= 0.0001)  return '$' + n.toFixed(6);
+  if (n > 0)        return '$' + n.toFixed(7);
+  return '$0.00';
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadAll();
+setInterval(loadAll, 30_000);
+</script>
+</body>
+</html>
