@@ -18,7 +18,8 @@ import { promisify } from 'util';
 const execFileAsync = promisify(execFile);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const LOG_FILE = path.join(os.homedir(), '.config', 'claude-smart-optimizer', 'usage.log');
+const LOG_FILE  = path.join(os.homedir(), '.config', 'claude-smart-optimizer', 'usage.log');
+const LIVE_FILE = path.join(os.homedir(), '.config', 'claude-smart-optimizer', 'session_live.json');
 const PORT = 3847; // Unlikely to conflict with other services
 
 const app = express();
@@ -27,6 +28,23 @@ const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── API ──────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/live
+ * Returns the current active session stats (written after every command).
+ */
+app.get('/api/live', (req, res) => {
+  try {
+    if (!fs.existsSync(LIVE_FILE)) return res.json({ active: false });
+    const live = JSON.parse(fs.readFileSync(LIVE_FILE, 'utf8'));
+    // Consider stale if not updated in 10 minutes
+    const age = Date.now() - new Date(live.updatedAt).getTime();
+    if (age > 10 * 60 * 1000) return res.json({ active: false });
+    return res.json(live);
+  } catch {
+    return res.json({ active: false });
+  }
+});
 
 /**
  * GET /api/stats
@@ -46,6 +64,15 @@ app.get('/api/stats', (req, res) => {
   const totalHandoffs = entries.filter(e => e.type === 'handoff').length;
   const totalSessions = entries.filter(e => e.type === 'session_end').length;
 
+  // Aggregate per-feature savings across all sessions
+  const featureSavings = {};
+  for (const e of entries) {
+    if (!e.featureSavings) continue;
+    for (const [k, v] of Object.entries(e.featureSavings)) {
+      featureSavings[k] = (featureSavings[k] || 0) + v;
+    }
+  }
+
   res.json({
     totalCost:           round(totalCost),
     totalCommands,
@@ -53,7 +80,8 @@ app.get('/api/stats', (req, res) => {
     estimatedSavingsUSD: totalDollars > 0 ? round(totalDollars) : round(totalSaved * 0.000003),
     totalHandoffs,
     totalSessions,
-    lastSession: entries[entries.length - 1]?.timestamp || null,
+    lastSession:    entries[entries.length - 1]?.timestamp || null,
+    featureSavings,
   });
 });
 

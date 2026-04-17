@@ -9,8 +9,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-const LOG_DIR  = path.join(os.homedir(), '.config', 'claude-smart-optimizer');
-const LOG_FILE = path.join(LOG_DIR, 'usage.log');
+const LOG_DIR   = path.join(os.homedir(), '.config', 'claude-smart-optimizer');
+const LOG_FILE  = path.join(LOG_DIR, 'usage.log');
+const LIVE_FILE = path.join(LOG_DIR, 'session_live.json');
 
 // Input token pricing per 1M tokens (USD)
 const MODEL_PRICES = {
@@ -37,6 +38,18 @@ export class ContextMonitor {
     this.startTime      = Date.now();
     this.handoffOccurred = false;
     this.currentModel   = 'claude-sonnet-4-6';
+    // Per-feature savings breakdown
+    this.featureSavings = {
+      'trim-log':       0,
+      'truncate':       0,
+      'dedupe':         0,
+      'translate':      0,
+      'politeness':     0,
+      'code-compress':  0,
+      'output-hint':    0,
+      'model-routing':  0,
+      'cache':          0,
+    };
 
     this.costThreshold    = config.get('costThreshold')    || 0.80;
     this.commandThreshold = config.get('commandThreshold') || 25;
@@ -48,8 +61,9 @@ export class ContextMonitor {
    * @param {string} outputText
    * @param {number} savedTokens — input tokens saved by CCSO
    * @param {string} model — model used for this prompt
+   * @param {Array}  savingsBreakdown — per-feature savings array from interceptor
    */
-  trackOutput(outputText, savedTokens = 0, model = null) {
+  trackOutput(outputText, savedTokens = 0, model = null, savingsBreakdown = []) {
     if (model) this.currentModel = model;
     const price        = pricePerToken(this.currentModel);
     const defaultPrice = pricePerToken('claude-sonnet-4-6');
@@ -64,15 +78,55 @@ export class ContextMonitor {
       this.dollarsSaved += savedTokens * price;
     }
 
+    // Per-feature breakdown
+    for (const { step, saved } of savingsBreakdown) {
+      if (this.featureSavings[step] !== undefined) {
+        this.featureSavings[step] += saved;
+      }
+    }
+
     // Savings from model routing: difference between Sonnet and actual model cost
     if (price < defaultPrice) {
-      const routingSaved = outputTok * (defaultPrice - price);
-      this.dollarsSaved += routingSaved;
+      const routingTokSaved = outputTok * (defaultPrice - price) / price;
+      const routingSavedUSD = outputTok * (defaultPrice - price);
+      this.dollarsSaved += routingSavedUSD;
+      this.tokensSaved  += Math.ceil(routingTokSaved);
+      this.featureSavings['model-routing'] += Math.ceil(routingTokSaved);
     }
+
+    this._saveLive();
+  }
+
+  /** Track a cache hit (full response saved) */
+  trackCacheHit(savedTokens = 0) {
+    this.tokensSaved  += savedTokens;
+    this.dollarsSaved += savedTokens * pricePerToken(this.currentModel);
+    this.featureSavings['cache'] += savedTokens;
+    this._saveLive();
   }
 
   trackCommand() {
     this.commandCount++;
+    this._saveLive();
+  }
+
+  /** Write current session state to a live file so the dashboard can read it in real time */
+  _saveLive() {
+    try {
+      fs.mkdirSync(LOG_DIR, { recursive: true });
+      const live = {
+        active:        true,
+        updatedAt:     new Date().toISOString(),
+        cost:          parseFloat(this.sessionCost.toFixed(6)),
+        commands:      this.commandCount,
+        tokensSaved:   this.tokensSaved,
+        dollarsSaved:  parseFloat(this.dollarsSaved.toFixed(6)),
+        model:         this.currentModel,
+        duration:      Math.round((Date.now() - this.startTime) / 60000),
+        featureSavings: { ...this.featureSavings },
+      };
+      fs.writeFileSync(LIVE_FILE, JSON.stringify(live));
+    } catch { /* ignore */ }
   }
 
   shouldHandoff() {
@@ -98,6 +152,7 @@ export class ContextMonitor {
       tokensSaved:      this.tokensSaved,
       dollarsSaved:     parseFloat(this.dollarsSaved.toFixed(6)),
       model:            this.currentModel,
+      featureSavings:   { ...this.featureSavings },
     };
   }
 
@@ -109,15 +164,16 @@ export class ContextMonitor {
     try {
       fs.mkdirSync(LOG_DIR, { recursive: true });
       const entry = {
-        type:        'session_end',
-        timestamp:   new Date().toISOString(),
-        cost:        parseFloat(this.sessionCost.toFixed(6)),
-        commands:    this.commandCount,
-        tokensSaved:  this.tokensSaved,
-        dollarsSaved: parseFloat(this.dollarsSaved.toFixed(6)),
-        model:        this.currentModel,
-        duration:     Math.round((Date.now() - this.startTime) / 60000),
-        handoff:      isHandoff,
+        type:          'session_end',
+        timestamp:     new Date().toISOString(),
+        cost:          parseFloat(this.sessionCost.toFixed(6)),
+        commands:      this.commandCount,
+        tokensSaved:   this.tokensSaved,
+        dollarsSaved:  parseFloat(this.dollarsSaved.toFixed(6)),
+        model:         this.currentModel,
+        duration:      Math.round((Date.now() - this.startTime) / 60000),
+        handoff:       isHandoff,
+        featureSavings: { ...this.featureSavings },
       };
       fs.appendFileSync(LOG_FILE, JSON.stringify(entry) + '\n');
     } catch {
@@ -139,5 +195,6 @@ export class ContextMonitor {
     this.dollarsSaved    = 0;
     this.startTime       = Date.now();
     this.handoffOccurred = false;
+    for (const k of Object.keys(this.featureSavings)) this.featureSavings[k] = 0;
   }
 }

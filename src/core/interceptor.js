@@ -125,10 +125,10 @@ export class Interceptor {
     // 7. Compress code blocks
     if (this.compressCodeEnabled && result.includes('```')) {
       const { text: compressed, saved: charsSaved } = this._compressCode(result);
-      if (charsSaved > 50) {
-        const tokensSaved = Math.ceil(charsSaved / 4);
-        savings.push({ step: 'code-compress', saved: tokensSaved });
-        actions.push(`⚡ קוד דוחס (חסכנו ~${tokensSaved} טוקנים)`);
+      if (charsSaved > 5) {
+        const toksSaved = Math.ceil(charsSaved / 4);
+        savings.push({ step: 'code-compress', saved: toksSaved });
+        actions.push(`⚡ קוד דוחס (חסכנו ~${toksSaved} טוקנים)`);
         result = compressed;
       }
     }

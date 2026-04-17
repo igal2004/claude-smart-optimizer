@@ -407,9 +407,9 @@
           <div class="hint">דולר אמריקאי</div>
         </div>
         <div class="card green">
-          <div class="lbl">חיסכון משוער</div>
+          <div class="lbl">חיסכון משוער <span id="liveIndicator" style="display:none;background:#22c55e;color:#000;font-size:10px;padding:2px 6px;border-radius:8px;margin-right:4px;">● LIVE</span></div>
           <div class="val" id="totalSaved">—</div>
-          <div class="hint">בזכות ניתוב חכם + כיווץ</div>
+          <div class="hint">ניתוב מודל + דחיסה + מטמון + כל הפיצ'רים</div>
         </div>
         <div class="card blue">
           <div class="lbl">פקודות סה"כ</div>
@@ -582,15 +582,29 @@ async function loadAll() {
 
 async function loadStats() {
   try {
-    const d = await fetch('/api/stats').then(r => r.json());
+    const [d, live] = await Promise.all([
+      fetch('/api/stats').then(r => r.json()),
+      fetch('/api/live').then(r => r.json()).catch(() => ({ active: false })),
+    ]);
     if (d.empty) return;
     if (d._demo) document.getElementById('demoBanner').style.display = 'block';
-    document.getElementById('totalCost').textContent     = fmtUSD(d.totalCost || 0);
-    document.getElementById('totalSaved').textContent    = fmtUSD(d.estimatedSavingsUSD || 0);
-    document.getElementById('totalCommands').textContent = (d.totalCommands || 0).toLocaleString();
+
+    // Add live session data on top of historical totals
+    const liveCost    = live.active ? (live.cost        || 0) : 0;
+    const liveSaved   = live.active ? (live.dollarsSaved|| 0) : 0;
+    const liveTokens  = live.active ? (live.tokensSaved || 0) : 0;
+    const liveCmds    = live.active ? (live.commands     || 0) : 0;
+
+    document.getElementById('totalCost').textContent     = fmtUSD((d.totalCost || 0) + liveCost);
+    document.getElementById('totalSaved').textContent    = fmtUSD((d.estimatedSavingsUSD || 0) + liveSaved);
+    document.getElementById('totalCommands').textContent = ((d.totalCommands || 0) + liveCmds).toLocaleString();
     document.getElementById('totalHandoffs').textContent = (d.totalHandoffs || 0).toLocaleString();
     document.getElementById('totalSessions').textContent = (d.totalSessions || 0).toLocaleString();
-    document.getElementById('totalTokens').textContent   = fmt(d.totalTokensSaved || 0);
+    document.getElementById('totalTokens').textContent   = fmt((d.totalTokensSaved || 0) + liveTokens);
+
+    // Show live indicator if session is active
+    const liveEl = document.getElementById('liveIndicator');
+    if (liveEl) liveEl.style.display = live.active ? 'inline' : 'none';
   } catch(e) { console.error(e); }
 }
 
@@ -752,18 +766,56 @@ const FEATURES = [
     desc: 'מסך זה! מציג עלויות, חיסכון לפי פיצ\'ר, פלטפורמות ויכולת שליחת פרומפטים.\nccso --dashboard' },
 ];
 
-function renderFeatures() {
-  document.getElementById('featuresGrid').innerHTML = FEATURES.map(f => `
+// Maps feature keys from log to feature titles
+const FEATURE_KEY_MAP = {
+  'trim-log':      '✂️ קיצוץ לוגים',
+  'truncate':      '📄 חיתוך קבצים גדולים',
+  'dedupe':        '🔁 הסרת כפילויות',
+  'translate':     '🌐 תרגום עברית',
+  'politeness':    '🧹 הסרת נימוסים',
+  'code-compress': '📦 כיווץ קוד',
+  'output-hint':   '📏 הגבלת אורך תגובה',
+  'model-routing': '🧠 ניתוב מודל חכם',
+  'cache':         '💾 מטמון תגובות',
+};
+
+async function renderFeatures() {
+  // Load live session + historical feature savings
+  let featureSavings = {};
+  try {
+    const [hist, live] = await Promise.all([
+      fetch('/api/stats').then(r => r.json()),
+      fetch('/api/live').then(r => r.json()).catch(() => ({})),
+    ]);
+    const hf = hist.featureSavings || {};
+    const lf = (live.active && live.featureSavings) ? live.featureSavings : {};
+    for (const k of Object.keys(FEATURE_KEY_MAP)) {
+      featureSavings[k] = (hf[k] || 0) + (lf[k] || 0);
+    }
+  } catch {}
+
+  document.getElementById('featuresGrid').innerHTML = FEATURES.map(f => {
+    // Find matching feature key
+    const key = Object.keys(FEATURE_KEY_MAP).find(k => FEATURE_KEY_MAP[k].includes(f.icon));
+    const saved = key ? (featureSavings[key] || 0) : 0;
+    const savingsBadge = saved > 0
+      ? `<span style="margin-right:8px;background:#0d2d1a;color:#22c55e;padding:2px 8px;border-radius:10px;font-size:11px">💰 ${saved.toLocaleString()} טוקנים נחסכו</span>`
+      : '';
+    return `
     <div class="feature-item">
       <div class="f-icon">${f.icon}</div>
       <div>
         <div class="f-title">${f.title}</div>
         <div class="f-desc">${f.desc.replace(/\n/g, '<br>')}</div>
-        <div class="f-badge ${f.type === 'auto' ? 'f-auto' : 'f-manual'}">
-          ${f.type === 'auto' ? 'אוטומטי' : 'ידני'}
+        <div style="margin-top:6px">
+          <div class="f-badge ${f.type === 'auto' ? 'f-auto' : 'f-manual'}">
+            ${f.type === 'auto' ? 'אוטומטי' : 'ידני'}
+          </div>
+          ${savingsBadge}
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ── Chat ──────────────────────────────────────────────────────────────────────
@@ -861,7 +913,8 @@ function fmtUSD(n) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 loadAll();
-setInterval(loadAll, 30_000);
+setInterval(loadAll, 30_000);        // full refresh every 30s
+setInterval(loadStats, 10_000);      // live session stats every 10s
 </script>
 </body>
 </html>

@@ -135,7 +135,7 @@ async function main() {
     history.add(input);
 
     // Process through interceptor pipeline
-    const { text: processed, tokensSaved } = await interceptor.processWithStats(input);
+    const { text: processed, tokensSaved, savings: savingsBreakdown } = await interceptor.processWithStats(input);
 
     // Inject memory context
     const finalPrompt = memCtx + processed;
@@ -159,13 +159,13 @@ async function main() {
       console.log(`\n  \x1b[2m[CCSO] 💾 תגובה מהמטמון (חסכנו ~${cachedTokens} טוקנים)\x1b[0m`);
       process.stdout.write(cached.response + '\n');
       contextMonitor.trackCommand();
-      contextMonitor.trackOutput('', cachedTokens, route.model); // count as saved
+      contextMonitor.trackCacheHit(cachedTokens);
       rl.prompt();
       return;
     }
 
     // Run backend
-    runBackend(backend, finalPrompt, route.args, contextMonitor, tokensSaved, route.model, (response) => {
+    runBackend(backend, finalPrompt, route.args, contextMonitor, tokensSaved, route.model, savingsBreakdown, (response) => {
       promptCache.set(finalPrompt, response, route.model || 'sonnet');
     });
     rl.prompt();
@@ -184,7 +184,7 @@ async function main() {
   });
 }
 
-function runBackend(backend, prompt, modelArgs = [], monitor, tokensSaved = 0, model = null, onComplete = null) {
+function runBackend(backend, prompt, modelArgs = [], monitor, tokensSaved = 0, model = null, savingsBreakdown = [], onComplete = null) {
   const args = [...modelArgs, '--print', prompt];
   const child = spawn(backend, args, { stdio: ['ignore', 'pipe', 'pipe'] });
   monitor.trackCommand();
@@ -194,9 +194,10 @@ function runBackend(backend, prompt, modelArgs = [], monitor, tokensSaved = 0, m
     const str = data.toString();
     process.stdout.write(str);
     fullResponse += str;
-    monitor.trackOutput(str, tokensSaved, model);
+    monitor.trackOutput(str, tokensSaved, model, savingsBreakdown);
     tokensSaved = 0;
     model = null;
+    savingsBreakdown = [];
   });
 
   child.stderr.on('data', (data) => {
