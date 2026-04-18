@@ -6,102 +6,162 @@
  */
 
 import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import { getCCSODataDir, getCCSOPath } from './storage-paths.js';
+import {
+  estimateRequestCostUsd,
+  estimateRoutingDeltaUsd,
+  getModelPricing,
+  getPricingMethodology,
+  normalizeModelFamily,
+} from './pricing.js';
 
-const LOG_DIR   = path.join(os.homedir(), '.config', 'claude-smart-optimizer');
-const LOG_FILE  = path.join(LOG_DIR, 'usage.log');
-const LIVE_FILE = path.join(LOG_DIR, 'session_live.json');
+const LOG_DIR = getCCSODataDir();
+const LOG_FILE = getCCSOPath('usage.log');
+const LIVE_FILE = getCCSOPath('session_live.json');
 
-// Input token pricing per 1M tokens (USD)
-const MODEL_PRICES = {
-  'claude-haiku-4-5-20251001': 0.80,
-  'claude-haiku-4-5':          0.80,
-  'claude-sonnet-4-6':         3.00,
-  'claude-opus-4-6':           15.00,
-  'default':                   3.00,
-};
+const FEATURE_KEYS = [
+  'trim-log',
+  'truncate',
+  'dedupe',
+  'translate',
+  'politeness',
+  'code-compress',
+  'output-hint',
+  'model-routing',
+  'cache',
+];
 
-function pricePerToken(model) {
-  const key = Object.keys(MODEL_PRICES).find(k => model?.includes(k)) || 'default';
-  return MODEL_PRICES[key] / 1_000_000;
+function createFeatureSavings() {
+  return Object.fromEntries(
+    FEATURE_KEYS.map((key) => [key, { inputTokens: 0, outputTokens: 0, totalTokens: 0, usd: 0 }]),
+  );
+}
+
+function roundUsd(value) {
+  return parseFloat(value.toFixed(6));
 }
 
 export class ContextMonitor {
   constructor(config) {
     this.config = config;
-    this.sessionCost    = 0;
-    this.commandCount   = 0;
-    this.outputTokens   = 0;
-    this.tokensSaved    = 0;
-    this.dollarsSaved   = 0;   // USD saved by CCSO optimizations
-    this.startTime      = Date.now();
+    this.backend = config.get('backend') || 'claude';
+    this.methodology = getPricingMethodology(this.backend);
+    this.sessionCost = 0;
+    this.commandCount = 0;
+    this.estimatedInputTokens = 0;
+    this.estimatedOutputTokens = 0;
+    this.tokensAvoided = 0;
+    this.netSavingsUsd = 0;
+    this.startTime = Date.now();
     this.handoffOccurred = false;
-    this.currentModel   = 'claude-sonnet-4-6';
-    // Per-feature savings breakdown
-    this.featureSavings = {
-      'trim-log':       0,
-      'truncate':       0,
-      'dedupe':         0,
-      'translate':      0,
-      'politeness':     0,
-      'code-compress':  0,
-      'output-hint':    0,
-      'model-routing':  0,
-      'cache':          0,
+    this.currentModel = 'sonnet';
+    this.featureSavings = createFeatureSavings();
+    this.savingsBreakdownUsd = {
+      promptReduction: 0,
+      outputHints: 0,
+      cache: 0,
+      routing: 0,
     };
 
-    this.costThreshold    = config.get('costThreshold')    || 0.80;
+    this.costThreshold = config.get('costThreshold') || 0.80;
     this.commandThreshold = config.get('commandThreshold') || 25;
-    this.timeThresholdMs  = (config.get('timeThresholdHours') || 2) * 60 * 60 * 1000;
+    this.timeThresholdMs = (config.get('timeThresholdHours') || 2) * 60 * 60 * 1000;
   }
 
   /**
-   * Track output from Claude and estimate cost.
-   * @param {string} outputText
-   * @param {number} savedTokens — input tokens saved by CCSO
-   * @param {string} model — model used for this prompt
-   * @param {Array}  savingsBreakdown — per-feature savings array from interceptor
+   * Track a completed turn.
+   * @param {object} options
+   * @param {number} options.promptTokens
+   * @param {number} options.outputTokens
+   * @param {string} options.model
+   * @param {Array} options.savingsBreakdown
+   * @param {boolean} options.cacheHit
    */
-  trackOutput(outputText, savedTokens = 0, model = null, savingsBreakdown = []) {
-    if (model) this.currentModel = model;
-    const price        = pricePerToken(this.currentModel);
-    const defaultPrice = pricePerToken('claude-sonnet-4-6');
+  trackTurn({
+    promptTokens = 0,
+    outputTokens = 0,
+    model = 'sonnet',
+    savingsBreakdown = [],
+    cacheHit = false,
+  } = {}) {
+    this.currentModel = normalizeModelFamily(model);
 
-    const outputTok = Math.ceil(outputText.length / 4);
-    this.outputTokens += outputTok;
-    this.sessionCost  += outputTok * price;
+    if (!cacheHit) {
+      this.estimatedInputTokens += promptTokens;
+      this.estimatedOutputTokens += outputTokens;
+      if (this.methodology.pricingAvailable) {
+        const actual = estimateRequestCostUsd({
+          model: this.currentModel,
+          inputTokens: promptTokens,
+          outputTokens,
+        });
+        this.sessionCost += actual.totalCostUsd;
 
-    // Savings from input token reduction (all interceptor features)
-    if (savedTokens > 0) {
-      this.tokensSaved  += savedTokens;
-      this.dollarsSaved += savedTokens * price;
-    }
+        const routingUsd = estimateRoutingDeltaUsd({
+          model: this.currentModel,
+          inputTokens: promptTokens,
+          outputTokens,
+          baselineModel: 'sonnet',
+        });
+        this.savingsBreakdownUsd.routing += routingUsd;
+        this.featureSavings['model-routing'].usd += routingUsd;
+      }
+    } else {
+      this.tokensAvoided += promptTokens + outputTokens;
+      this.featureSavings.cache.inputTokens += promptTokens;
+      this.featureSavings.cache.outputTokens += outputTokens;
+      this.featureSavings.cache.totalTokens += promptTokens + outputTokens;
 
-    // Per-feature breakdown
-    for (const { step, saved } of savingsBreakdown) {
-      if (this.featureSavings[step] !== undefined) {
-        this.featureSavings[step] += saved;
+      if (this.methodology.pricingAvailable) {
+        const avoided = estimateRequestCostUsd({
+          model: this.currentModel,
+          inputTokens: promptTokens,
+          outputTokens,
+        });
+        this.savingsBreakdownUsd.cache += avoided.totalCostUsd;
+        this.featureSavings.cache.usd += avoided.totalCostUsd;
       }
     }
 
-    // Savings from model routing: difference between Sonnet and actual model cost
-    if (price < defaultPrice) {
-      const routingTokSaved = outputTok * (defaultPrice - price) / price;
-      const routingSavedUSD = outputTok * (defaultPrice - price);
-      this.dollarsSaved += routingSavedUSD;
-      this.tokensSaved  += Math.ceil(routingTokSaved);
-      this.featureSavings['model-routing'] += Math.ceil(routingTokSaved);
+    if (!cacheHit && this.methodology.pricingAvailable) {
+      const pricing = getModelPricing(this.currentModel);
+      for (const item of savingsBreakdown) {
+        const kind = item?.kind || 'input';
+        const saved = item?.saved || 0;
+        const feature = this.featureSavings[item.step];
+        if (!feature || saved <= 0) continue;
+
+        if (kind === 'output') {
+          const usd = saved * pricing.outputUsdPerToken;
+          feature.outputTokens += saved;
+          feature.totalTokens += saved;
+          feature.usd += usd;
+          this.tokensAvoided += saved;
+          this.savingsBreakdownUsd.outputHints += usd;
+        } else {
+          const usd = saved * pricing.inputUsdPerToken;
+          feature.inputTokens += saved;
+          feature.totalTokens += saved;
+          feature.usd += usd;
+          this.tokensAvoided += saved;
+          this.savingsBreakdownUsd.promptReduction += usd;
+        }
+      }
+    } else if (!cacheHit) {
+      for (const item of savingsBreakdown) {
+        const kind = item?.kind || 'input';
+        const saved = item?.saved || 0;
+        const feature = this.featureSavings[item.step];
+        if (!feature || saved <= 0) continue;
+
+        if (kind === 'output') feature.outputTokens += saved;
+        else feature.inputTokens += saved;
+        feature.totalTokens += saved;
+        this.tokensAvoided += saved;
+      }
     }
 
-    this._saveLive();
-  }
-
-  /** Track a cache hit (full response saved) */
-  trackCacheHit(savedTokens = 0) {
-    this.tokensSaved  += savedTokens;
-    this.dollarsSaved += savedTokens * pricePerToken(this.currentModel);
-    this.featureSavings['cache'] += savedTokens;
+    this.netSavingsUsd = Object.values(this.savingsBreakdownUsd).reduce((sum, value) => sum + value, 0);
     this._saveLive();
   }
 
@@ -115,44 +175,98 @@ export class ContextMonitor {
     try {
       fs.mkdirSync(LOG_DIR, { recursive: true });
       const live = {
-        active:        true,
-        updatedAt:     new Date().toISOString(),
-        cost:          parseFloat(this.sessionCost.toFixed(6)),
-        commands:      this.commandCount,
-        tokensSaved:   this.tokensSaved,
-        dollarsSaved:  parseFloat(this.dollarsSaved.toFixed(6)),
-        model:         this.currentModel,
-        duration:      Math.round((Date.now() - this.startTime) / 60000),
-        featureSavings: { ...this.featureSavings },
+        active: true,
+        updatedAt: new Date().toISOString(),
+        backend: this.backend,
+        cost: roundUsd(this.sessionCost),
+        commands: this.commandCount,
+        tokensSaved: this.tokensAvoided,
+        dollarsSaved: roundUsd(this.netSavingsUsd),
+        model: this.currentModel,
+        duration: Math.round((Date.now() - this.startTime) / 60000),
+        estimatedInputTokens: this.estimatedInputTokens,
+        estimatedOutputTokens: this.estimatedOutputTokens,
+        estimatedTokensAvoided: this.tokensAvoided,
+        estimatedNetSavingsUsd: roundUsd(this.netSavingsUsd),
+        savingsBreakdownUsd: {
+          promptReduction: roundUsd(this.savingsBreakdownUsd.promptReduction),
+          outputHints: roundUsd(this.savingsBreakdownUsd.outputHints),
+          cache: roundUsd(this.savingsBreakdownUsd.cache),
+          routing: roundUsd(this.savingsBreakdownUsd.routing),
+        },
+        featureSavings: Object.fromEntries(
+          Object.entries(this.featureSavings).map(([key, value]) => [
+            key,
+            {
+              inputTokens: value.inputTokens,
+              outputTokens: value.outputTokens,
+              totalTokens: value.totalTokens,
+              usd: roundUsd(value.usd),
+            },
+          ]),
+        ),
+        methodology: this.methodology,
       };
       fs.writeFileSync(LIVE_FILE, JSON.stringify(live));
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  _clearLive() {
+    try {
+      fs.rmSync(LIVE_FILE, { force: true });
+    } catch {
+      /* ignore */
+    }
   }
 
   shouldHandoff() {
-    if (this.sessionCost   >= this.costThreshold)    return true;
-    if (this.commandCount  >= this.commandThreshold) return true;
+    if (this.sessionCost >= this.costThreshold) return true;
+    if (this.commandCount >= this.commandThreshold) return true;
     if (Date.now() - this.startTime >= this.timeThresholdMs) return true;
     return false;
   }
 
   getStatus() {
-    const elapsed  = Math.round((Date.now() - this.startTime) / 60000);
-    const costPct  = Math.min(100, Math.round((this.sessionCost / this.costThreshold) * 100));
-    const cmdPct   = Math.min(100, Math.round((this.commandCount / this.commandThreshold) * 100));
-    const usedPct  = Math.max(costPct, cmdPct);
+    const elapsed = Math.round((Date.now() - this.startTime) / 60000);
+    const costPct = Math.min(100, Math.round((this.sessionCost / this.costThreshold) * 100));
+    const cmdPct = Math.min(100, Math.round((this.commandCount / this.commandThreshold) * 100));
+    const usedPct = Math.max(costPct, cmdPct);
 
     return {
-      cost:             this.sessionCost.toFixed(4),
-      costThreshold:    this.costThreshold,
-      commands:         this.commandCount,
+      backend: this.backend,
+      cost: this.sessionCost.toFixed(4),
+      costThreshold: this.costThreshold,
+      commands: this.commandCount,
       commandThreshold: this.commandThreshold,
-      elapsedMinutes:   elapsed,
-      usedPercent:      usedPct,
-      tokensSaved:      this.tokensSaved,
-      dollarsSaved:     parseFloat(this.dollarsSaved.toFixed(6)),
-      model:            this.currentModel,
-      featureSavings:   { ...this.featureSavings },
+      elapsedMinutes: elapsed,
+      usedPercent: usedPct,
+      tokensSaved: this.tokensAvoided,
+      dollarsSaved: roundUsd(this.netSavingsUsd),
+      model: this.currentModel,
+      estimatedInputTokens: this.estimatedInputTokens,
+      estimatedOutputTokens: this.estimatedOutputTokens,
+      estimatedTokensAvoided: this.tokensAvoided,
+      estimatedNetSavingsUsd: roundUsd(this.netSavingsUsd),
+      savingsBreakdownUsd: {
+        promptReduction: roundUsd(this.savingsBreakdownUsd.promptReduction),
+        outputHints: roundUsd(this.savingsBreakdownUsd.outputHints),
+        cache: roundUsd(this.savingsBreakdownUsd.cache),
+        routing: roundUsd(this.savingsBreakdownUsd.routing),
+      },
+      featureSavings: Object.fromEntries(
+        Object.entries(this.featureSavings).map(([key, value]) => [
+          key,
+          {
+            inputTokens: value.inputTokens,
+            outputTokens: value.outputTokens,
+            totalTokens: value.totalTokens,
+            usd: roundUsd(value.usd),
+          },
+        ]),
+      ),
+      methodology: this.methodology,
     };
   }
 
@@ -161,21 +275,55 @@ export class ContextMonitor {
    * Called automatically on Handoff or clean exit.
    */
   saveToLog(isHandoff = false) {
+    if (
+      this.commandCount === 0 &&
+      this.estimatedInputTokens === 0 &&
+      this.estimatedOutputTokens === 0 &&
+      this.tokensAvoided === 0 &&
+      this.sessionCost === 0
+    ) {
+      this._clearLive();
+      return;
+    }
+
     try {
       fs.mkdirSync(LOG_DIR, { recursive: true });
       const entry = {
-        type:          'session_end',
-        timestamp:     new Date().toISOString(),
-        cost:          parseFloat(this.sessionCost.toFixed(6)),
-        commands:      this.commandCount,
-        tokensSaved:   this.tokensSaved,
-        dollarsSaved:  parseFloat(this.dollarsSaved.toFixed(6)),
-        model:         this.currentModel,
-        duration:      Math.round((Date.now() - this.startTime) / 60000),
-        handoff:       isHandoff,
-        featureSavings: { ...this.featureSavings },
+        type: 'session_end',
+        timestamp: new Date().toISOString(),
+        backend: this.backend,
+        cost: roundUsd(this.sessionCost),
+        commands: this.commandCount,
+        tokensSaved: this.tokensAvoided,
+        dollarsSaved: roundUsd(this.netSavingsUsd),
+        model: this.currentModel,
+        duration: Math.round((Date.now() - this.startTime) / 60000),
+        handoff: isHandoff,
+        estimatedInputTokens: this.estimatedInputTokens,
+        estimatedOutputTokens: this.estimatedOutputTokens,
+        estimatedTokensAvoided: this.tokensAvoided,
+        estimatedNetSavingsUsd: roundUsd(this.netSavingsUsd),
+        savingsBreakdownUsd: {
+          promptReduction: roundUsd(this.savingsBreakdownUsd.promptReduction),
+          outputHints: roundUsd(this.savingsBreakdownUsd.outputHints),
+          cache: roundUsd(this.savingsBreakdownUsd.cache),
+          routing: roundUsd(this.savingsBreakdownUsd.routing),
+        },
+        featureSavings: Object.fromEntries(
+          Object.entries(this.featureSavings).map(([key, value]) => [
+            key,
+            {
+              inputTokens: value.inputTokens,
+              outputTokens: value.outputTokens,
+              totalTokens: value.totalTokens,
+              usd: roundUsd(value.usd),
+            },
+          ]),
+        ),
+        methodology: this.methodology,
       };
       fs.appendFileSync(LOG_FILE, JSON.stringify(entry) + '\n');
+      if (!isHandoff) this._clearLive();
     } catch {
       // Silently ignore log write failures — never crash the CLI
     }
@@ -188,13 +336,21 @@ export class ContextMonitor {
   }
 
   reset() {
-    this.sessionCost     = 0;
-    this.commandCount    = 0;
-    this.outputTokens    = 0;
-    this.tokensSaved     = 0;
-    this.dollarsSaved    = 0;
-    this.startTime       = Date.now();
+    this.sessionCost = 0;
+    this.commandCount = 0;
+    this.estimatedInputTokens = 0;
+    this.estimatedOutputTokens = 0;
+    this.tokensAvoided = 0;
+    this.netSavingsUsd = 0;
+    this.startTime = Date.now();
     this.handoffOccurred = false;
-    for (const k of Object.keys(this.featureSavings)) this.featureSavings[k] = 0;
+    this.featureSavings = createFeatureSavings();
+    this.savingsBreakdownUsd = {
+      promptReduction: 0,
+      outputHints: 0,
+      cache: 0,
+      routing: 0,
+    };
+    this._saveLive();
   }
 }

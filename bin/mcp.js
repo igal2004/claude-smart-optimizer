@@ -10,7 +10,7 @@
  *   cc mcp remove <name>           — remove an MCP integration
  *   cc mcp status                  — check which MCPs are active
  *
- * Supported tools: Claude Code, Codex CLI, Cursor, Windsurf
+ * Supported primary targets: Claude Code, Cursor, Windsurf
  */
 
 import * as fs from 'fs';

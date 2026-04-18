@@ -2,10 +2,11 @@
 
 /**
  * cc — CCSO Smart Optimizer v3.0
- * Main entry point. Works with Claude Code, Codex CLI, Cursor, Windsurf and more.
+ * Main entry point. Best with Claude Code; also manages project rules,
+ * instruction files, MCP config, and companion bridges for other tools.
  *
  * Usage:
- *   cc                        — start the Smart REPL (Claude Code / Codex)
+ *   cc                        — start the Smart REPL (Claude Code backend)
  *   cc --init                 — Smart Init wizard (CLAUDE.md, AGENTS.md, .claudeignore)
  *   cc --dashboard            — open the visual dashboard in browser
  *   cc --config               — interactive settings menu
@@ -46,7 +47,7 @@ function showHelp() {
   console.log(c.cyan(c.bold('  ╚═══════════════════════════════════════════════╝')));
   console.log('');
   console.log(c.bold('  פקודות בסיסיות:'));
-  console.log(`  ${c.green('cc')}                     פתח Smart REPL (Claude Code / Codex)`);
+  console.log(`  ${c.green('cc')}                     פתח Smart REPL (Claude Code backend)`);
   console.log(`  ${c.green('cc --init')}              אשף הגדרת פרויקט (CLAUDE.md + .claudeignore)`);
   console.log(`  ${c.green('cc --dashboard')}         פתח דשבורד ויזואלי בדפדפן`);
   console.log(`  ${c.green('cc --config')}            תפריט הגדרות`);
@@ -54,7 +55,7 @@ function showHelp() {
   console.log(`  ${c.green('cc --uninstall')}         הסר CCSO`);
   console.log('');
   console.log(c.bold('  חיסכון בכל הפלטפורמות:'));
-  console.log(`  ${c.green('cc inject')}              הזרק כללי חיסכון לפרויקט (CLAUDE.md, .cursorrules, Copilot, Windsurf)`);
+  console.log(`  ${c.green('cc inject')}              הזרק כללי פרויקט ל-Claude/Cursor/Windsurf/Copilot/Gemini/Firebase`);
   console.log(`  ${c.green('cc inject /path')}        הזרק לתיקייה ספציפית`);
   console.log(`  ${c.green('cc eject')}               הסר כללי CCSO מהפרויקט`);
   console.log('');
@@ -72,7 +73,7 @@ function showHelp() {
   console.log(`  ${c.green('cc notebooklm ask "?"')}  שאל שאלה על המחברת`);
   console.log(`  ${c.green('cc notebooklm save "."')} שמור סיכום למחברת`);
   console.log('');
-  console.log(c.dim('  כלים נתמכים: Claude Code, Codex CLI, Cursor, Windsurf'));
+  console.log(c.dim('  אינטגרציות פעילות: Claude Code backend, Cursor/Windsurf rules, Copilot/Gemini instructions, NotebookLM bridge'));
   console.log(c.dim('  GitHub: https://github.com/igal2004/ccso'));
   console.log('');
 }
@@ -102,17 +103,19 @@ if (cmd === '--config') {
 if (cmd === '--status') {
   const { loadConfig }     = await import(path.join(__dirname, '..', 'src', 'core', 'config.js'));
   const { ContextMonitor } = await import(path.join(__dirname, '..', 'src', 'core', 'context-monitor.js'));
-  const { detectInstalledTools } = await import(path.join(__dirname, '..', 'src', 'adapters', 'tool-adapter.js'));
+  const { getSupportedPlatformStatuses } = await import(path.join(__dirname, '..', 'src', 'core', 'platform-support.js'));
 
   const config  = loadConfig();
   const monitor = new ContextMonitor(config);
   const s       = monitor.getStatus();
-  const tools   = detectInstalledTools();
+  const tools   = (await getSupportedPlatformStatuses())
+    .filter(tool => tool.availability === 'detected')
+    .map(tool => tool.name);
 
   const c = { cyan: s => `\x1b[36m${s}\x1b[0m`, bold: s => `\x1b[1m${s}\x1b[0m`, dim: s => `\x1b[2m${s}\x1b[0m`, green: s => `\x1b[32m${s}\x1b[0m` };
   console.log('');
   console.log(c.bold(c.cyan('  CCSO v3.0 — סטטוס\n')));
-  console.log(`  כלים שזוהו:       ${tools.join(', ')}`);
+  console.log(`  פלטפורמות נתמכות שזוהו: ${tools.length ? tools.join(', ') : '—'}`);
   console.log(`  Backend פעיל:     ${config.get('backend') || 'claude'}`);
   console.log(`  סף עלות:          $${s.costThreshold}`);
   console.log(`  סף פקודות:        ${s.commandThreshold}`);

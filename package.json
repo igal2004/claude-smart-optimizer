@@ -1,7 +1,7 @@
 {
   "name": "claude-smart-optimizer",
   "version": "3.0.0",
-  "description": "Smart CLI wrapper for Claude Code, Codex CLI, Cursor & Windsurf — auto-translation, context management, MCP manager, NotebookLM bridge and more.",
+  "description": "Smart optimizer for Claude Code plus project-rule/instruction integrations for Cursor, Windsurf, Copilot, Gemini, Firebase Studio, and NotebookLM.",
   "main": "src/index.js",
   "type": "module",
   "bin": {
@@ -21,9 +21,10 @@
   "keywords": [
     "claude",
     "claude-code",
-    "codex",
     "cursor",
     "windsurf",
+    "copilot",
+    "gemini",
     "ai",
     "cli",
     "optimizer",

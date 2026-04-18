@@ -25,6 +25,7 @@ import { PromptHistory } from './core/prompt-history.js';
 import { handleTemplateCommand } from './core/templates.js';
 import { loadConfig }  from './core/config.js';
 import { printBanner, printStatus } from './ui/display.js';
+import { countTokens } from './core/token-utils.js';
 
 const config         = loadConfig();
 const interceptor    = new Interceptor(config);
@@ -33,7 +34,7 @@ const timeGuard      = new TimeGuard(config);
 const modelRouter    = new ModelRouter(config);
 const promptCache    = new PromptCache(config);
 const memory         = new Memory(config);
-const history        = new PromptHistory();
+const history        = new PromptHistory(config);
 
 async function main() {
   printBanner();
@@ -41,8 +42,8 @@ async function main() {
   const timeWarning = timeGuard.check();
   if (timeWarning) console.log(timeWarning);
 
-  const memCtx = memory.buildContextPrefix();
-  if (memCtx) {
+  const initialMemCtx = memory.buildContextPrefix();
+  if (initialMemCtx) {
     console.log('  \x1b[2m[CCSO] זיכרון פרויקט נטען אוטומטית\x1b[0m');
   }
 
@@ -135,10 +136,15 @@ async function main() {
     history.add(input);
 
     // Process through interceptor pipeline
-    const { text: processed, tokensSaved, savings: savingsBreakdown } = await interceptor.processWithStats(input);
+    const {
+      text: processed,
+      savings: savingsBreakdown,
+    } = await interceptor.processWithStats(input);
 
     // Inject memory context
+    const memCtx = memory.buildContextPrefix(processed);
     const finalPrompt = memCtx + processed;
+    const promptTokens = countTokens(finalPrompt);
 
     // Smart model routing
     const route = modelRouter.route(processed);
@@ -155,17 +161,23 @@ async function main() {
     // Check response cache
     const cached = promptCache.get(finalPrompt, route.model);
     if (cached) {
-      const cachedTokens = Math.ceil(cached.response.length / 4);
-      console.log(`\n  \x1b[2m[CCSO] 💾 תגובה מהמטמון (חסכנו ~${cachedTokens} טוקנים)\x1b[0m`);
+      const outputTokens = countTokens(cached.response);
+      console.log(`\n  \x1b[2m[CCSO] 💾 תגובה מהמטמון (חסכנו ~${outputTokens + promptTokens} טוקנים)\x1b[0m`);
       process.stdout.write(cached.response + '\n');
       contextMonitor.trackCommand();
-      contextMonitor.trackCacheHit(cachedTokens);
+      contextMonitor.trackTurn({
+        promptTokens,
+        outputTokens,
+        model: route.model,
+        savingsBreakdown,
+        cacheHit: true,
+      });
       rl.prompt();
       return;
     }
 
     // Run backend
-    runBackend(backend, finalPrompt, route.args, contextMonitor, tokensSaved, route.model, savingsBreakdown, (response) => {
+    runBackend(backend, finalPrompt, route.args, contextMonitor, promptTokens, route.model, savingsBreakdown, (response) => {
       promptCache.set(finalPrompt, response, route.model || 'sonnet');
     });
     rl.prompt();
@@ -184,7 +196,7 @@ async function main() {
   });
 }
 
-function runBackend(backend, prompt, modelArgs = [], monitor, tokensSaved = 0, model = null, savingsBreakdown = [], onComplete = null) {
+function runBackend(backend, prompt, modelArgs = [], monitor, promptTokens = 0, model = null, savingsBreakdown = [], onComplete = null) {
   const args = [...modelArgs, '--print', prompt];
   const child = spawn(backend, args, { stdio: ['ignore', 'pipe', 'pipe'] });
   monitor.trackCommand();
@@ -194,10 +206,6 @@ function runBackend(backend, prompt, modelArgs = [], monitor, tokensSaved = 0, m
     const str = data.toString();
     process.stdout.write(str);
     fullResponse += str;
-    monitor.trackOutput(str, tokensSaved, model, savingsBreakdown);
-    tokensSaved = 0;
-    model = null;
-    savingsBreakdown = [];
   });
 
   child.stderr.on('data', (data) => {
@@ -205,6 +213,14 @@ function runBackend(backend, prompt, modelArgs = [], monitor, tokensSaved = 0, m
   });
 
   child.on('close', () => {
+    if (fullResponse.trim()) {
+      monitor.trackTurn({
+        promptTokens,
+        outputTokens: countTokens(fullResponse),
+        model,
+        savingsBreakdown,
+      });
+    }
     if (onComplete && fullResponse.trim()) onComplete(fullResponse.trim());
   });
 

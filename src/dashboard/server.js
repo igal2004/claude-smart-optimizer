@@ -10,17 +10,22 @@
 import express from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as os from 'os';
 import { fileURLToPath } from 'url';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { loadConfig } from '../core/config.js';
+import { getCCSOPath } from '../core/storage-paths.js';
+import { getPricingMethodology } from '../core/pricing.js';
+import { getFeatureCatalog, getFeatureStateMap } from '../core/feature-catalog.js';
+import { getSupportedPlatformStatuses } from '../core/platform-support.js';
 
 const execFileAsync = promisify(execFile);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const LOG_FILE  = path.join(os.homedir(), '.config', 'claude-smart-optimizer', 'usage.log');
-const LIVE_FILE = path.join(os.homedir(), '.config', 'claude-smart-optimizer', 'session_live.json');
+const LOG_FILE  = getCCSOPath('usage.log');
+const LIVE_FILE = getCCSOPath('session_live.json');
 const PORT = 3847; // Unlikely to conflict with other services
+const config = loadConfig();
 
 const app = express();
 
@@ -51,37 +56,84 @@ app.get('/api/live', (req, res) => {
  * Returns aggregated statistics from the usage log.
  */
 app.get('/api/stats', (req, res) => {
-  const entries = readLog();
+  const { entries } = readLogData();
+  const backend = config.get('backend') || 'claude';
+  const methodology = getPricingMethodology(backend);
+  const featureCatalog = getFeatureCatalog(config);
+  const featureStates = getFeatureStateMap(config);
+  const optimizerSettings = getOptimizerSettings(config);
 
-  if (entries.length === 0) {
-    return res.json({ empty: true });
-  }
-
-  const totalCost = entries.reduce((s, e) => s + (e.cost || 0), 0);
-  const totalCommands = entries.reduce((s, e) => s + (e.commands || 0), 0);
-  const totalSaved    = entries.reduce((s, e) => s + (e.tokensSaved  || 0), 0);
-  const totalDollars  = entries.reduce((s, e) => s + (e.dollarsSaved || 0), 0);
-  const totalHandoffs = entries.filter(e => e.type === 'handoff').length;
-  const totalSessions = entries.filter(e => e.type === 'session_end').length;
+  const totalCost = entries.reduce((sum, entry) => sum + (entry.cost || 0), 0);
+  const totalCommands = entries.reduce((sum, entry) => sum + (entry.commands || 0), 0);
+  const totalTokensAvoided = entries.reduce((sum, entry) => sum + (entry.estimatedTokensAvoided || entry.tokensSaved || 0), 0);
+  const totalNetSavingsUsd = entries.reduce((sum, entry) => sum + (entry.estimatedNetSavingsUsd || entry.dollarsSaved || 0), 0);
+  const totalInputTokens = entries.reduce((sum, entry) => sum + (entry.estimatedInputTokens || 0), 0);
+  const totalOutputTokens = entries.reduce((sum, entry) => sum + (entry.estimatedOutputTokens || 0), 0);
+  const totalHandoffs = entries.filter(entry => entry.handoff).length;
+  const totalSessions = entries.filter(entry => entry.type === 'session_end').length;
 
   // Aggregate per-feature savings across all sessions
   const featureSavings = {};
+  const savingsBreakdownUsd = {
+    promptReduction: 0,
+    outputHints: 0,
+    cache: 0,
+    routing: 0,
+  };
   for (const e of entries) {
+    if (e.savingsBreakdownUsd) {
+      savingsBreakdownUsd.promptReduction += e.savingsBreakdownUsd.promptReduction || 0;
+      savingsBreakdownUsd.outputHints += e.savingsBreakdownUsd.outputHints || 0;
+      savingsBreakdownUsd.cache += e.savingsBreakdownUsd.cache || 0;
+      savingsBreakdownUsd.routing += e.savingsBreakdownUsd.routing || 0;
+    }
     if (!e.featureSavings) continue;
     for (const [k, v] of Object.entries(e.featureSavings)) {
-      featureSavings[k] = (featureSavings[k] || 0) + v;
+      if (!featureSavings[k]) {
+        featureSavings[k] = { inputTokens: 0, outputTokens: 0, totalTokens: 0, usd: 0 };
+      }
+      if (typeof v === 'number') {
+        featureSavings[k].totalTokens += v;
+      } else {
+        featureSavings[k].inputTokens += v.inputTokens || 0;
+        featureSavings[k].outputTokens += v.outputTokens || 0;
+        featureSavings[k].totalTokens += (v.totalTokens || 0) || ((v.inputTokens || 0) + (v.outputTokens || 0));
+        featureSavings[k].usd += v.usd || 0;
+      }
     }
   }
 
   res.json({
+    backend,
     totalCost:           round(totalCost),
     totalCommands,
-    totalTokensSaved:    totalSaved,
-    estimatedSavingsUSD: totalDollars > 0 ? round(totalDollars) : round(totalSaved * 0.000003),
+    totalTokensAvoided,
+    totalInputTokens,
+    totalOutputTokens,
+    estimatedNetSavingsUsd: round(totalNetSavingsUsd),
     totalHandoffs,
     totalSessions,
     lastSession:    entries[entries.length - 1]?.timestamp || null,
-    featureSavings,
+    featureSavings: Object.fromEntries(
+      Object.entries(featureSavings).map(([key, value]) => [key, {
+        inputTokens: value.inputTokens,
+        outputTokens: value.outputTokens,
+        totalTokens: value.totalTokens,
+        usd: round(value.usd),
+      }]),
+    ),
+    savingsBreakdownUsd: {
+      promptReduction: round(savingsBreakdownUsd.promptReduction),
+      outputHints: round(savingsBreakdownUsd.outputHints),
+      cache: round(savingsBreakdownUsd.cache),
+      routing: round(savingsBreakdownUsd.routing),
+    },
+    methodology,
+    featureCatalog,
+    featureStates,
+    optimizerSettings,
+    chatSupported: backend === 'claude',
+    empty: entries.length === 0,
   });
 });
 
@@ -90,7 +142,7 @@ app.get('/api/stats', (req, res) => {
  * Returns daily cost and savings for the last 30 days (for the line chart).
  */
 app.get('/api/daily', (req, res) => {
-  const entries = readLog();
+  const { entries } = readLogData();
   const days = {};
 
   for (const entry of entries) {
@@ -98,14 +150,14 @@ app.get('/api/daily', (req, res) => {
     const day = entry.timestamp.substring(0, 10); // YYYY-MM-DD
     if (!days[day]) days[day] = { date: day, cost: 0, saved: 0, commands: 0 };
     days[day].cost += entry.cost || 0;
-    days[day].saved += entry.tokensSaved || 0;
+    days[day].saved += entry.estimatedNetSavingsUsd || entry.dollarsSaved || 0;
     days[day].commands += entry.commands || 0;
   }
 
   const sorted = Object.values(days)
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(-30)
-    .map(d => ({ ...d, cost: round(d.cost), saved: round(d.saved * 0.000003) }));
+    .map(d => ({ ...d, cost: round(d.cost), saved: round(d.saved) }));
 
   res.json(sorted);
 });
@@ -115,7 +167,8 @@ app.get('/api/daily', (req, res) => {
  * Returns the last 20 sessions for the sessions table.
  */
 app.get('/api/sessions', (req, res) => {
-  const entries = readLog()
+  const { entries } = readLogData();
+  const items = entries
     .filter(e => e.type === 'session_end')
     .slice(-20)
     .reverse()
@@ -123,14 +176,15 @@ app.get('/api/sessions', (req, res) => {
       date:         e.timestamp?.substring(0, 16).replace('T', ' ') || '—',
       cost:         round(e.cost || 0),
       commands:     e.commands || 0,
-      tokensSaved:  e.tokensSaved || 0,
-      dollarsSaved: round(e.dollarsSaved || (e.tokensSaved || 0) * 0.000003),
+      tokensAvoided:  e.estimatedTokensAvoided || e.tokensSaved || 0,
+      netSavingsUsd: round(e.estimatedNetSavingsUsd || e.dollarsSaved || 0),
       model:        e.model || 'sonnet',
+      backend:      e.backend || 'claude',
       handoff:      e.handoff ? 'כן' : 'לא',
       duration:     e.duration ? `${e.duration} דק'` : '—',
     }));
 
-  res.json(entries);
+  res.json(items);
 });
 
 /**
@@ -139,61 +193,7 @@ app.get('/api/sessions', (req, res) => {
  * Checks both CLI commands in PATH and macOS .app bundles in /Applications.
  */
 app.get('/api/platforms', async (req, res) => {
-  const home = os.homedir();
-  const vscodeExt = path.join(home, '.vscode', 'extensions');
-  const androidStudioPrefs = path.join(home, 'Library', 'Application Support', 'Google');
-
-  // Helper: check if any VS Code extension matches a prefix
-  const hasVscodeExt = (prefix) => {
-    if (!fs.existsSync(vscodeExt)) return false;
-    return fs.readdirSync(vscodeExt).some(e => e.toLowerCase().startsWith(prefix));
-  };
-
-  // Helper: check Android Studio Gemini plugin config
-  const hasAndroidStudioGemini = () => {
-    const appDir = '/Applications';
-    const hasAS = fs.existsSync(appDir) &&
-      fs.readdirSync(appDir).some(e => e.toLowerCase().includes('androidstudio'));
-    if (!hasAS) return false;
-    // Check for Gemini plugin marker in prefs
-    if (!fs.existsSync(androidStudioPrefs)) return false;
-    return fs.readdirSync(androidStudioPrefs)
-      .some(e => e.toLowerCase().includes('androidstudio'));
-  };
-
-  const checks = [
-    { id: 'claude',    detect: async () => { try { await execFileAsync('which', ['claude']); return true; } catch { return false; } } },
-    { id: 'cursor',    detect: async () => fs.existsSync('/Applications/Cursor.app') || fs.existsSync(path.join(home, 'Applications', 'Cursor.app')) },
-    { id: 'codex',     detect: async () => { try { await execFileAsync('which', ['codex']); return true; } catch { return fs.existsSync('/Applications/Codex.app'); } } },
-    { id: 'windsurf',  detect: async () => fs.existsSync('/Applications/Windsurf.app') || fs.existsSync(path.join(home, 'Applications', 'Windsurf.app')) },
-    { id: 'vscode',    detect: async () => fs.existsSync('/Applications/Visual Studio Code.app') || (() => { try { require('child_process').execSync('which code', {stdio:'ignore'}); return true; } catch { return false; } })() },
-    { id: 'gemini',    detect: async () =>
-        hasVscodeExt('google.geminicodeassist') ||
-        hasVscodeExt('googlecloudtools.cloudcode') ||
-        hasVscodeExt('google.cloudcode') ||
-        hasAndroidStudioGemini()
-    },
-    { id: 'firebase',  detect: async () => {
-        try { await execFileAsync('which', ['firebase']); return true; } catch {}
-        const npmPaths = [
-          path.join(home, '.npm-global', 'bin', 'firebase'),
-          '/usr/local/bin/firebase',
-          path.join(home, '.nvm', 'versions', 'node', 'current', 'bin', 'firebase'),
-        ];
-        return npmPaths.some(p => fs.existsSync(p));
-    }},
-    { id: 'androidstudio', detect: async () => {
-        const dirs = ['/Applications', path.join(home, 'Applications')];
-        return dirs.some(d => fs.existsSync(d) && fs.readdirSync(d).some(e => e.toLowerCase().includes('androidstudio')));
-    }},
-  ];
-
-  const detected = [];
-  await Promise.all(checks.map(async ({ id, detect }) => {
-    try { if (await detect()) detected.push(id); } catch {}
-  }));
-
-  res.json(detected);
+  res.json(await getSupportedPlatformStatuses());
 });
 
 /**
@@ -204,6 +204,12 @@ app.get('/api/platforms', async (req, res) => {
 app.post('/api/prompt', express.json(), async (req, res) => {
   const { prompt } = req.body || {};
   if (!prompt?.trim()) return res.status(400).json({ error: 'prompt required' });
+  const backend = config.get('backend') || 'claude';
+  if (backend !== 'claude') {
+    return res.status(400).json({
+      error: `Dashboard chat currently supports the Claude backend only. Current backend: ${backend}`,
+    });
+  }
 
   // Basic secret scan
   const warnings = [];
@@ -240,15 +246,17 @@ app.post('/api/prompt', express.json(), async (req, res) => {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function readLog() {
-  if (!fs.existsSync(LOG_FILE)) return generateDemoData();
+function readLogData() {
+  if (!fs.existsSync(LOG_FILE)) return { entries: [] };
   try {
-    return fs.readFileSync(LOG_FILE, 'utf8')
-      .split('\n')
-      .filter(Boolean)
-      .map(line => JSON.parse(line));
+    return {
+      entries: fs.readFileSync(LOG_FILE, 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map(line => JSON.parse(line)),
+    };
   } catch {
-    return generateDemoData();
+    return { entries: [] };
   }
 }
 
@@ -256,30 +264,46 @@ function round(n) {
   return Math.round(n * 10000) / 10000;
 }
 
-/**
- * Generate realistic demo data for first-time users who have no log yet.
- */
-function generateDemoData() {
-  const data = [];
-  const now = new Date();
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const date = d.toISOString().substring(0, 10);
-    const sessions = Math.floor(Math.random() * 4) + 1;
-    for (let s = 0; s < sessions; s++) {
-      data.push({
-        type: 'session_end',
-        timestamp: `${date}T${String(9 + s * 3).padStart(2, '0')}:00:00`,
-        cost: Math.random() * 0.6 + 0.05,
-        commands: Math.floor(Math.random() * 20) + 3,
-        tokensSaved: Math.floor(Math.random() * 8000) + 500,
-        handoff: Math.random() > 0.5,
-        duration: Math.floor(Math.random() * 45) + 5,
-      });
-    }
-  }
-  return data;
+function getOptimizerSettings(currentConfig) {
+  const promptCacheEnabled = currentConfig.get('promptCache') !== false;
+  const memoryEnabled = currentConfig.get('memoryEnabled') !== false;
+
+  return {
+    promptCache: {
+      enabled: promptCacheEnabled,
+      ttlHours: Number(currentConfig.get('cacheTTLHours')) || 24,
+      mode: promptCacheEnabled ? 'conservative-normalization' : 'disabled',
+    },
+    memory: {
+      enabled: memoryEnabled,
+      tokenBudget: Number(currentConfig.get('memoryTokenBudget')) || 180,
+      maxFacts: Number(currentConfig.get('memoryMaxFacts')) || 6,
+      mode: memoryEnabled ? 'relevance-scoped' : 'disabled',
+    },
+    trimLogs: {
+      enabled: currentConfig.get('trimLogs') !== false,
+      mode: 'error-focused',
+    },
+    routing: {
+      enabled: currentConfig.get('smartRouting') !== false,
+      baselineModel: 'sonnet',
+    },
+    translate: {
+      enabled: currentConfig.get('translate') === true,
+    },
+    responseHints: {
+      enabled: currentConfig.get('responseLengthHints') === true,
+    },
+    truncateLargePastes: {
+      enabled: currentConfig.get('truncateLargePastes') === true,
+    },
+    dedupeLongInput: {
+      enabled: currentConfig.get('dedupeLongInput') === true,
+    },
+    codeCompression: {
+      enabled: currentConfig.get('codeCompression') === true,
+    },
+  };
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────────
