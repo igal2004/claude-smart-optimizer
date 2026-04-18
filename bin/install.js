@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as readline from 'readline';
+import { fileURLToPath } from 'url';
 import { getCCSOPath } from '../src/core/storage-paths.js';
 import { getDefaultConfig } from '../src/core/default-config.js';
 
@@ -22,7 +23,7 @@ const c = {
   red:    (s) => `\x1b[31m${s}\x1b[0m`,
 };
 
-const SCRIPT_DIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const SCRIPT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function detect(cmd) {
   try { execSync(`which ${cmd}`, { stdio: 'ignore' }); return true; } catch { return false; }
@@ -91,6 +92,7 @@ async function main() {
   console.log('');
 
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const shellrc = path.join(os.homedir(), process.env.SHELL?.includes('zsh') ? '.zshrc' : '.bashrc');
 
   // Ask user to confirm or override
   console.log('  אנא אשר את האינטגרציות שברצונך להבליט ב-CCSO (y/n לכל אחת):\n');
@@ -117,20 +119,20 @@ async function main() {
     const alias = `alias ccso='node ${path.join(SCRIPT_DIR, 'bin', 'cc.js')}'`;
     const configLine = `\n# Claude Code Smart Optimizer (CCSO)\nexport CCSO_BACKEND=${backend}\n${alias}\n`;
 
-    const shellrc = path.join(os.homedir(), process.env.SHELL?.includes('zsh') ? '.zshrc' : '.bashrc');
+    if (!fs.existsSync(shellrc)) fs.writeFileSync(shellrc, '');
     if (!fs.readFileSync(shellrc, 'utf8').includes('CCSO')) {
       fs.appendFileSync(shellrc, configLine);
-      console.log(c.green(`  ✅ Alias "cc" נוסף ל-${shellrc}`));
+      console.log(c.green(`  ✅ Alias "ccso" נוסף ל-${shellrc}`));
     } else {
       console.log(c.yellow(`  ℹ️  Alias כבר קיים ב-${shellrc}`));
     }
   }
 
   // Ask about dashboard
-  const dashAns = await ask(rl, '  האם להתקין גם את הדשבורד הויזואלי? (פותח בדפדפן עם cc --dashboard) [Y/n]: ');
+  const dashAns = await ask(rl, '  האם להפעיל גם את הדשבורד הויזואלי? (נפתח עם ccso --dashboard) [Y/n]: ');
   const installDashboard = (dashAns.trim().toLowerCase() || 'y') !== 'n';
   if (installDashboard) {
-    console.log(c.green('  ✅ הדשבורד יהיה זמין דרך: cc --dashboard'));
+    console.log(c.green('  ✅ הדשבורד יהיה זמין דרך: ccso --dashboard'));
   }
   console.log('');
 
@@ -161,11 +163,12 @@ async function main() {
   console.log(c.dim('  ברירות המחדל שמרניות: translate/code compression/output hints כבויים עד שתדליק אותם ידנית.'));
   console.log('');
   console.log('  כדי להתחיל לעבוד, הרץ:');
-  console.log(c.cyan('    source ~/.bashrc   # (או פתח טרמינל חדש)'));
-  console.log(c.cyan('    cc                 # במקום "claude"'));
+  console.log(c.cyan(`    source ${shellrc}   # (או פתח טרמינל חדש)`));
+  console.log(c.cyan('    ccso               # REPL חכם מעל Claude Code'));
   if (installDashboard) {
-    console.log(c.cyan('    cc --dashboard     # פתיחת דשבורד ויזואלי בדפדפן'));
+    console.log(c.cyan('    ccso --dashboard   # פתיחת דשבורד ויזואלי בדפדפן'));
   }
+  console.log(c.cyan('    ./הפעל\\ CCSO.command  # לחיצה כפולה להפעלה נוחה מהתיקייה'));
   console.log('');
   console.log('  להסרה:');
   console.log(c.dim('    node ' + path.join(SCRIPT_DIR, 'bin', 'uninstall.js')));

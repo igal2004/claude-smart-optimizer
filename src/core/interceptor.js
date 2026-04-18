@@ -64,11 +64,12 @@ export class Interceptor {
   }
 
   async processWithStats(input) {
-    const { text, warnings, savings } = await this.process(input);
+    const { text, warnings, savings, actions } = await this.process(input);
     return {
       text,
       warnings,
       savings,
+      actions,
       inputTokensBefore: countTokens(input),
       inputTokensAfter: countTokens(text),
       inputTokensSaved: sumSavedTokens(savings, 'input'),
@@ -177,7 +178,7 @@ export class Interceptor {
     if (actions.length > 0) console.log('\n' + actions.map(a => `  [CCSO] ${a}`).join('\n'));
     for (const w of warnings) console.log(`\n  \x1b[33m${w}\x1b[0m`);
 
-    return { text: result, warnings, savings };
+    return { text: result, warnings, savings, actions };
   }
 
   // ── New: Truncate large inline content ────────────────────────────────────────

@@ -2,7 +2,7 @@
 
 /**
  * CCSO Interactive Configuration
- * Run with: cc --config
+ * Run with: ccso --config
  */
 
 import * as readline from 'readline';

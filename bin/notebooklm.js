@@ -5,11 +5,11 @@
  * Connect any AI coding tool to Google NotebookLM as a free external memory.
  *
  * Usage:
- *   cc notebooklm login          — authenticate with Google (one-time setup)
- *   cc notebooklm list           — list all your notebooks
- *   cc notebooklm ask <question> — query a notebook and get a summary
- *   cc notebooklm save <text>    — save a note/summary to a notebook
- *   cc notebooklm status         — check connection status
+ *   ccso notebooklm login          — authenticate with Google (one-time setup)
+ *   ccso notebooklm list           — list all your notebooks
+ *   ccso notebooklm ask <question> — query a notebook and get a summary
+ *   ccso notebooklm save <text>    — save a note/summary to a notebook
+ *   ccso notebooklm status         — check connection status
  *
  * How it works:
  *   NotebookLM has no official API. This bridge uses Playwright (headless browser)
@@ -132,7 +132,7 @@ async function cmdLogin() {
 
   saveSession(googleCookies);
   console.log(c.bold(c.green('\n  ✅ התחברות הצליחה! הסשן נשמר.\n')));
-  console.log(c.dim('  כעת תוכל להשתמש ב: cc notebooklm list\n'));
+  console.log(c.dim('  כעת תוכל להשתמש ב: ccso notebooklm list\n'));
 }
 
 // ── List notebooks ────────────────────────────────────────────────────────────
@@ -140,7 +140,7 @@ async function cmdLogin() {
 async function cmdList() {
   const session = loadSession();
   if (!session) {
-    console.log(c.yellow('\n  לא מחובר. הרץ: cc notebooklm login\n'));
+    console.log(c.yellow('\n  לא מחובר. הרץ: ccso notebooklm login\n'));
     return;
   }
 
@@ -186,13 +186,13 @@ async function cmdList() {
       console.log(`  ${c.bold(String(i + 1).padStart(2))}. ${nb.title}`);
     });
     console.log('');
-    console.log(c.dim('  שאל מחברת: cc notebooklm ask "שאלה שלך"'));
+    console.log(c.dim('  שאל מחברת: ccso notebooklm ask "שאלה שלך"'));
     console.log('');
 
   } catch (err) {
     await browser.close();
     console.log(c.red(`\n  שגיאה: ${err.message}\n`));
-    console.log(c.yellow('  ייתכן שהסשן פג תוקף. הרץ: cc notebooklm login\n'));
+    console.log(c.yellow('  ייתכן שהסשן פג תוקף. הרץ: ccso notebooklm login\n'));
   }
 }
 
@@ -200,19 +200,19 @@ async function cmdList() {
 
 async function cmdAsk(question) {
   if (!question) {
-    console.log(c.red('\n  שגיאה: ציין שאלה. לדוגמה: cc notebooklm ask "מה הארכיטקטורה של הפרויקט?"\n'));
+    console.log(c.red('\n  שגיאה: ציין שאלה. לדוגמה: ccso notebooklm ask "מה הארכיטקטורה של הפרויקט?"\n'));
     return;
   }
 
   const session = loadSession();
   if (!session) {
-    console.log(c.yellow('\n  לא מחובר. הרץ: cc notebooklm login\n'));
+    console.log(c.yellow('\n  לא מחובר. הרץ: ccso notebooklm login\n'));
     return;
   }
 
   const notebooks = loadNotebooksCache();
   if (notebooks.length === 0) {
-    console.log(c.yellow('\n  לא נמצאו מחברות. הרץ תחילה: cc notebooklm list\n'));
+    console.log(c.yellow('\n  לא נמצאו מחברות. הרץ תחילה: ccso notebooklm list\n'));
     return;
   }
 
@@ -272,7 +272,7 @@ async function cmdAsk(question) {
 
 async function cmdSave(text) {
   if (!text) {
-    console.log(c.red('\n  שגיאה: ציין טקסט לשמירה. לדוגמה: cc notebooklm save "סיכום הסשן של היום"\n'));
+    console.log(c.red('\n  שגיאה: ציין טקסט לשמירה. לדוגמה: ccso notebooklm save "סיכום הסשן של היום"\n'));
     return;
   }
 
@@ -286,7 +286,7 @@ async function cmdSave(text) {
   fs.appendFileSync(savePath, entry);
 
   console.log(c.green(`\n  ✅ הסיכום נשמר ב: ${savePath}`));
-  console.log(c.dim('  תוכל להעלות קובץ זה ל-NotebookLM ידנית, או להשתמש ב-cc notebooklm list לסנכרון.\n'));
+  console.log(c.dim('  תוכל להעלות קובץ זה ל-NotebookLM ידנית, או להשתמש ב-ccso notebooklm list לסנכרון.\n'));
 }
 
 // ── Status ────────────────────────────────────────────────────────────────────
@@ -302,7 +302,7 @@ async function cmdStatus() {
     const savedAt = new Date(session.savedAt).toLocaleString('he-IL');
     console.log(c.green(`  ✅ מחובר (סשן נשמר: ${savedAt})`));
   } else {
-    console.log(c.yellow('  ❌ לא מחובר — הרץ: cc notebooklm login'));
+    console.log(c.yellow('  ❌ לא מחובר — הרץ: ccso notebooklm login'));
   }
 
   console.log(`  📚 מחברות בקאש: ${notebooks.length}`);
@@ -314,7 +314,7 @@ async function cmdStatus() {
   }
 
   console.log('');
-  console.log(c.dim('  פקודות: cc notebooklm [login|list|ask|save|status]'));
+  console.log(c.dim('  פקודות: ccso notebooklm [login|list|ask|save|status]'));
   console.log('');
 }
 
@@ -334,7 +334,7 @@ async function main() {
     case undefined:  await cmdStatus(); break;
     default:
       console.log(c.red(`\n  פקודה לא מוכרת: ${subCmd}`));
-      console.log(c.dim('  שימוש: cc notebooklm [login|list|ask|save|status]\n'));
+      console.log(c.dim('  שימוש: ccso notebooklm [login|list|ask|save|status]\n'));
   }
 }
 

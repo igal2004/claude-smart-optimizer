@@ -1,7 +1,7 @@
 {
   "name": "claude-smart-optimizer",
   "version": "3.0.0",
-  "description": "Smart optimizer for Claude Code plus project-rule/instruction integrations for Cursor, Windsurf, Copilot, Gemini, Firebase Studio, and NotebookLM.",
+  "description": "Conservative prompt optimizer for Claude Code with honest dashboard metrics and assisted integrations for Cursor, Windsurf, Copilot, Gemini, Firebase Studio, and NotebookLM.",
   "main": "src/index.js",
   "type": "module",
   "bin": {

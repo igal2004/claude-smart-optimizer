@@ -1027,13 +1027,14 @@
 
       <div class="box">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <h2 style="margin:0">סשנים אחרונים</h2>
+          <h2 style="margin:0">פעילות אחרונה</h2>
           <button class="btn" onclick="loadAll()">↻ רענן</button>
         </div>
         <table>
           <thead>
             <tr>
               <th>תאריך ושעה</th>
+              <th>מקור</th>
               <th>Spend ($)</th>
               <th>Net Savings ($)</th>
               <th>Tokens Avoided</th>
@@ -1044,7 +1045,7 @@
             </tr>
           </thead>
           <tbody id="sessionsTable">
-            <tr><td colspan="8" style="text-align:center;color:var(--muted)">טוען...</td></tr>
+            <tr><td colspan="9" style="text-align:center;color:var(--muted)">טוען...</td></tr>
           </tbody>
         </table>
       </div>
@@ -1719,7 +1720,7 @@ async function loadSessions() {
     const data = await fetch('/api/sessions').then(r => r.json());
     const tbody = document.getElementById('sessionsTable');
     if (!data.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted)">אין סשנים עדיין</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted)">אין פעילות עדיין</td></tr>';
       return;
     }
     tbody.innerHTML = data.map(s => {
@@ -1728,6 +1729,7 @@ async function loadSessions() {
       return `
       <tr>
         <td>${s.date}</td>
+        <td>${s.source || 'CLI session'}</td>
         <td>$${(s.cost||0).toFixed(4)}</td>
         <td style="color:#3fb950">${fmtUSD(s.netSavingsUsd||0)}</td>
         <td>${fmt(s.tokensAvoided || 0)}</td>
@@ -2199,10 +2201,18 @@ async function sendPrompt() {
     if (data.warnings?.length) {
       data.warnings.forEach(w => appendMsg('system', '⚠️ ' + w));
     }
-    if (data.model) {
-      appendMsg('system', `🤖 מודל: ${data.model} | 🌐 תורגם: ${data.translated ? 'כן' : 'לא'}`);
+    const systemBits = [];
+    if (data.model) systemBits.push(`מודל: ${data.model}`);
+    if (typeof data.translated === 'boolean') systemBits.push(`תרגום: ${data.translated ? 'כן' : 'לא'}`);
+    if (data.cacheHit) systemBits.push('מטמון: hit');
+    if (systemBits.length) {
+      appendMsg('system', '🤖 ' + systemBits.join(' | '));
+    }
+    if (data.optimizations?.length) {
+      appendMsg('system', '🪄 אופטימיזציות: ' + data.optimizations.join(' • '));
     }
     appendMsg('assistant', data.response || '(אין תגובה)');
+    await Promise.all([loadStats(), loadDaily(), loadSessions(), loadFeatures()]);
   } catch(e) {
     document.getElementById(typingId)?.remove();
     appendMsg('error', '❌ שגיאה: ' + e.message + '\n\nודא ש-ccso --dashboard פועל עם claude מחובר.');

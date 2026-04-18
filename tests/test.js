@@ -58,6 +58,8 @@ assert('deduplication removes repeated lines', deduped.split('\n').length < 10);
 const hint = ix._buildLengthHint('what is Node.js?');
 assert('length hint for simple question', hint !== null);
 assert('no length hint for long text', ix._buildLengthHint('explain in detail how the authentication flow works with refresh tokens and why we need them') === null);
+const processedStats = await ix.processWithStats('please fix typo in README');
+assert('processWithStats returns actions array', Array.isArray(processedStats.actions));
 
 const longLog = [
   'Why does this crash? Here is the full server log:',
@@ -121,6 +123,23 @@ assert('cache hit avoids only the cached request tokens', cacheStatus.estimatedT
 const liveFile = getCCSOPath('session_live.json');
 monitor.saveToLog(false);
 assert('saving session clears live session file', !fs.existsSync(liveFile));
+
+const turnMonitor = new ContextMonitor(
+  { get: (k) => ({ costThreshold: 0.80, commandThreshold: 25, backend: 'claude' }[k]) },
+  { liveWrites: false },
+);
+turnMonitor.trackCommand();
+turnMonitor.trackTurn({
+  promptTokens: 40,
+  outputTokens: 60,
+  model: 'sonnet',
+  savingsBreakdown: [{ step: 'trim-log', kind: 'input', saved: 10 }],
+});
+turnMonitor.appendLogEntry({ type: 'turn', source: 'dashboard-chat', clearLive: true });
+const usageEntries = fs.readFileSync(getCCSOPath('usage.log'), 'utf8').trim().split('\n').map((line) => JSON.parse(line));
+const lastEntry = usageEntries[usageEntries.length - 1];
+assert('custom log entry keeps source metadata', lastEntry.type === 'turn' && lastEntry.source === 'dashboard-chat');
+assert('live-writes can be disabled for dashboard turns', !fs.existsSync(liveFile));
 
 // ── PromptCache ───────────────────────────────────────────────────────────────
 console.log('\n── PromptCache ──');

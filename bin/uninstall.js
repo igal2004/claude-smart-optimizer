@@ -46,7 +46,10 @@ async function main() {
     let content = fs.readFileSync(shellrc, 'utf8');
     if (content.includes('CCSO')) {
       // Remove the CCSO block
-      content = content.replace(/\n# Claude Code Smart Optimizer \(CCSO\)\nexport CCSO_BACKEND=.*\nalias cc=.*\n/g, '');
+      content = content.replace(
+        /\n# Claude Code Smart Optimizer \(CCSO\)\nexport CCSO_BACKEND=.*\nalias (cc|ccso)=.*\n/g,
+        '',
+      );
       fs.writeFileSync(shellrc, content);
       console.log(c.green(`  ✅ Alias הוסר מ-${shellrc}`));
     }
@@ -74,7 +77,7 @@ async function main() {
   console.log(c.dim('  Claude Code ממשיך לעבוד כרגיל עם הפקודה "claude".'));
   console.log('');
   console.log('  כדי להפעיל מחדש, הרץ:');
-  console.log(c.dim('    source ~/.bashrc'));
+  console.log(c.dim(`    source ${shellrc}`));
   console.log('');
 }
 

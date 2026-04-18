@@ -1,125 +1,140 @@
 # Claude Code Smart Optimizer (CCSO) v3.0.0
 
-> **A smart middleware layer between you and your AI tools — silently saves tokens, routes to cheaper models, and works across every platform.**
+> Conservative prompt optimization for Claude Code, with transparent savings metrics and honest platform support.
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/vubemodo)
 
-Instead of typing `claude`, type `ccso` — and all the savings happen automatically in the background.
+CCSO works best when it is the process that actually sends the prompt. That is why the strongest support is for Claude Code itself, while IDE integrations such as Cursor, Windsurf, Copilot, and Gemini are presented as assisted integrations or instruction targets rather than full runtime backends.
 
-Works with: **Claude Code · Cursor · Windsurf · VS Code + Copilot · Gemini Code Assist · Firebase Studio · Android Studio · Codex CLI**
+## What CCSO actually does
 
----
-
-## What it does
-
-| Feature | Description | Estimated Saving |
+| Area | What happens | Notes |
 |---|---|---|
-| **Smart model routing** | Simple questions → Haiku (10× cheaper), complex → Opus | up to 90% on simple queries |
-| **Response cache** | Same prompt → cached response, zero API calls | 100% on repeated prompts |
-| **Code compression** | Strips comments, console.log, blank lines from code blocks | 15–35% per code block |
-| **Log trimming** | Long logs → last 50 lines only | up to 90% on logs |
-| **Large file truncation** | Files >300 lines → smart head+tail | up to 60% |
-| **Deduplication** | Repeated lines removed from prompt | up to 20% |
-| **Politeness stripping** | Removes "please", "thank you", "could you" | ~5% per prompt |
-| **Response length hints** | Short questions get a brevity instruction | saves output tokens |
-| **Auto Git context** | Injects `git status` + diff when debugging | fewer back-and-forth |
-| **Secret scanner** | Warns before you leak API keys | security |
-| **Path resolver** | "fix auth.ts" → `/src/pages/auth.ts` | saves search |
-| **Auto Handoff** | When session cost hits threshold — summarizes and resets | 30–50% per session |
-| **inject command** | Applies savings rules to Cursor, VS Code, Gemini, Firebase | savings on every tool |
-| **Browser dashboard** | Live stats, charts, platform detection, chat | full visibility |
+| Smart routing | Simple prompts can go to Haiku, complex ones to Opus | enabled by default |
+| Conservative cache | Repeated prompts can reuse prior answers | measured and shown in the dashboard |
+| Focused log trimming | Large noisy logs are reduced to the useful error window | enabled by default |
+| Relevance-scoped memory | Small, relevant project facts are injected under a token budget | enabled by default |
+| Optional lossy features | Translate, code compression, dedupe, truncation, output hints | off by default for safety |
+| Dashboard | Live stats, savings breakdown, platform support, dashboard chat | savings are shown only where CCSO can truly measure them |
 
----
+## Platform support
+
+CCSO does not claim the same support level everywhere.
+
+| Platform | Support level | What works | What does not |
+|---|---|---|---|
+| Claude Code | Full backend | prompt execution, routing, cache, memory, measured spend/savings, dashboard chat, MCP/project files | only prompts sent through CCSO are measured |
+| Cursor | Project rules + MCP | `.cursorrules`, MCP config, helper flows | no prompt interception, no usage measurement |
+| Windsurf | Project rules + MCP | `.windsurfrules`, MCP config | no prompt interception, no usage measurement |
+| GitHub Copilot | Instruction file only | `.github/copilot-instructions.md` generation | no runtime control or stats |
+| Gemini Code Assist | Instruction file only | `.ccso_instruction` generation | no runtime control or stats |
+| Firebase Studio / Project IDX | Project config only | `.idx/dev.nix` scaffold plus Gemini instruction text | no runtime control or stats |
+| NotebookLM Bridge | Companion utility | `ccso notebooklm ...` commands | not an inline coding backend |
+
+## What the dashboard means
+
+The dashboard is intentionally strict:
+
+- `Spend` is measured only for prompts that CCSO itself sends.
+- `Net savings` is an estimate based on prompt reduction, cache hits, routing impact, and shorter outputs.
+- IDE-only tools such as Cursor, Windsurf, and Copilot are not counted in spend or savings.
+- The dashboard distinguishes between `Measured`, `Estimated`, and `Not measured` support paths.
+
+Start it with:
+
+```bash
+ccso --dashboard
+```
+
+Or, on macOS, you can double-click:
+
+```bash
+./הפעל\ CCSO.command
+```
+
+Default local URL:
+
+```text
+http://localhost:3847
+```
 
 ## Quick start
 
 ```bash
 git clone https://github.com/igal2004/claude-smart-optimizer.git
 cd claude-smart-optimizer
+npm install
 node bin/install.js
 ```
 
-Open a new terminal and run:
+Open a new terminal, then run:
 
 ```bash
 ccso
 ```
 
----
+## Main commands
 
-## Platform support
+```text
+ccso                     start the Smart REPL
+ccso --init              create project files such as CLAUDE.md
+ccso --dashboard         open the browser dashboard
+ccso --config            edit settings
+ccso --status            show current status
+ccso --uninstall         remove CCSO
+ccso inject              write supported project/instruction files
+ccso mcp list            list MCP integrations
+ccso notebooklm list     list NotebookLM notebooks
+```
 
-Use `ccso inject` inside any project to apply savings rules to all platforms at once.
+Inside the REPL:
 
-Creates these files automatically:
-- `CLAUDE.md` — Claude Code
-- `.cursorrules` — Cursor
-- `.windsurfrules` — Windsurf
-- `.github/copilot-instructions.md` — VS Code + Copilot
-- `.ccso_instruction` — Gemini Code Assist
-- `.idx/dev.nix` — Firebase Studio / Project IDX
+```text
+/status
+/handoff
+/cache
+/cache clear
+/history
+/memory
+/template
+/dashboard
+/exit
+```
 
----
+## Configuration defaults
 
-## Dashboard
+CCSO now ships with conservative defaults. Lossy features stay off until you explicitly enable them.
+
+| Setting | Default |
+|---|---|
+| `backend` | `claude` |
+| `translate` | `false` |
+| `codeCompression` | `false` |
+| `truncateLargePastes` | `false` |
+| `dedupeLongInput` | `false` |
+| `responseLengthHints` | `false` |
+| `stripPoliteness` | `true` |
+| `resolvePaths` | `true` |
+| `trimLogs` | `true` |
+| `secretScanner` | `true` |
+| `gitContext` | `true` |
+| `smartRouting` | `true` |
+| `promptCache` | `true` |
+| `memoryEnabled` | `true` |
+| `memoryTokenBudget` | `180` |
+| `memoryMaxFacts` | `6` |
+
+Open the interactive settings screen with:
 
 ```bash
-node src/dashboard/server.js
-# open http://localhost:3847
+ccso --config
 ```
 
----
-
-## REPL commands
-
-```
-/handoff        — save session summary and reset
-/status         — show current session cost and stats
-/cache          — show number of cached responses
-/cache clear    — clear response cache
-/dashboard      — open dashboard in browser
-/history        — show prompt history
-/exit           — quit
-```
-
----
-
-## Configuration
-
-Edit via `ccso --config` or directly in `~/.config/claude-smart-optimizer/config.json`:
-
-| Setting | Default | Description |
-|---|---|---|
-| `backend` | `claude` | `claude` or `codex` |
-| `translate` | `true` | Auto-translate Hebrew → English |
-| `stripPoliteness` | `true` | Remove filler words |
-| `resolvePaths` | `true` | Resolve relative paths |
-| `trimLogs` | `true` | Trim logs to 50 lines |
-| `codeCompression` | `true` | Compress code blocks |
-| `secretScanner` | `true` | Scan for API keys |
-| `gitContext` | `true` | Inject Git context |
-| `smartRouting` | `true` | Smart model routing |
-| `promptCache` | `true` | Response cache (24h) |
-| `cacheTTLHours` | `24` | Cache TTL in hours |
-| `timeGuard` | `true` | Peak hours warning |
-| `costThreshold` | `0.80` | Auto-handoff cost threshold (USD) |
-| `commandThreshold` | `25` | Auto-handoff command count |
-
----
-
-## Run tests
+## Testing
 
 ```bash
-node tests/test.js
+npm test
 ```
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get involved. All features on the [ROADMAP](ROADMAP.md) are open for contribution.
-
----
 
 ## Uninstall
 
@@ -127,10 +142,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get involved. All features on 
 ccso --uninstall
 ```
 
-Claude Code continues to work normally with the `claude` command.
+## Contributing
 
----
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-MIT — free for personal and commercial use.
+MIT

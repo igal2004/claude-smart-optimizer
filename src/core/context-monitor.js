@@ -42,8 +42,9 @@ function roundUsd(value) {
 }
 
 export class ContextMonitor {
-  constructor(config) {
+  constructor(config, options = {}) {
     this.config = config;
+    this.liveWritesEnabled = options.liveWrites !== false;
     this.backend = config.get('backend') || 'claude';
     this.methodology = getPricingMethodology(this.backend);
     this.sessionCost = 0;
@@ -172,6 +173,7 @@ export class ContextMonitor {
 
   /** Write current session state to a live file so the dashboard can read it in real time */
   _saveLive() {
+    if (!this.liveWritesEnabled) return;
     try {
       fs.mkdirSync(LOG_DIR, { recursive: true });
       const live = {
@@ -214,6 +216,7 @@ export class ContextMonitor {
   }
 
   _clearLive() {
+    if (!this.liveWritesEnabled) return;
     try {
       fs.rmSync(LIVE_FILE, { force: true });
     } catch {
@@ -270,11 +273,45 @@ export class ContextMonitor {
     };
   }
 
-  /**
-   * Save the current session summary to the usage log (for Dashboard).
-   * Called automatically on Handoff or clean exit.
-   */
-  saveToLog(isHandoff = false) {
+  buildLogEntry({ type = 'session_end', handoff = false, source = 'repl' } = {}) {
+    return {
+      type,
+      source,
+      timestamp: new Date().toISOString(),
+      backend: this.backend,
+      cost: roundUsd(this.sessionCost),
+      commands: this.commandCount,
+      tokensSaved: this.tokensAvoided,
+      dollarsSaved: roundUsd(this.netSavingsUsd),
+      model: this.currentModel,
+      duration: Math.round((Date.now() - this.startTime) / 60000),
+      handoff,
+      estimatedInputTokens: this.estimatedInputTokens,
+      estimatedOutputTokens: this.estimatedOutputTokens,
+      estimatedTokensAvoided: this.tokensAvoided,
+      estimatedNetSavingsUsd: roundUsd(this.netSavingsUsd),
+      savingsBreakdownUsd: {
+        promptReduction: roundUsd(this.savingsBreakdownUsd.promptReduction),
+        outputHints: roundUsd(this.savingsBreakdownUsd.outputHints),
+        cache: roundUsd(this.savingsBreakdownUsd.cache),
+        routing: roundUsd(this.savingsBreakdownUsd.routing),
+      },
+      featureSavings: Object.fromEntries(
+        Object.entries(this.featureSavings).map(([key, value]) => [
+          key,
+          {
+            inputTokens: value.inputTokens,
+            outputTokens: value.outputTokens,
+            totalTokens: value.totalTokens,
+            usd: roundUsd(value.usd),
+          },
+        ]),
+      ),
+      methodology: this.methodology,
+    };
+  }
+
+  appendLogEntry({ type = 'session_end', handoff = false, source = 'repl', clearLive = false } = {}) {
     if (
       this.commandCount === 0 &&
       this.estimatedInputTokens === 0 &&
@@ -282,51 +319,32 @@ export class ContextMonitor {
       this.tokensAvoided === 0 &&
       this.sessionCost === 0
     ) {
-      this._clearLive();
-      return;
+      if (clearLive) this._clearLive();
+      return false;
     }
 
     try {
       fs.mkdirSync(LOG_DIR, { recursive: true });
-      const entry = {
-        type: 'session_end',
-        timestamp: new Date().toISOString(),
-        backend: this.backend,
-        cost: roundUsd(this.sessionCost),
-        commands: this.commandCount,
-        tokensSaved: this.tokensAvoided,
-        dollarsSaved: roundUsd(this.netSavingsUsd),
-        model: this.currentModel,
-        duration: Math.round((Date.now() - this.startTime) / 60000),
-        handoff: isHandoff,
-        estimatedInputTokens: this.estimatedInputTokens,
-        estimatedOutputTokens: this.estimatedOutputTokens,
-        estimatedTokensAvoided: this.tokensAvoided,
-        estimatedNetSavingsUsd: roundUsd(this.netSavingsUsd),
-        savingsBreakdownUsd: {
-          promptReduction: roundUsd(this.savingsBreakdownUsd.promptReduction),
-          outputHints: roundUsd(this.savingsBreakdownUsd.outputHints),
-          cache: roundUsd(this.savingsBreakdownUsd.cache),
-          routing: roundUsd(this.savingsBreakdownUsd.routing),
-        },
-        featureSavings: Object.fromEntries(
-          Object.entries(this.featureSavings).map(([key, value]) => [
-            key,
-            {
-              inputTokens: value.inputTokens,
-              outputTokens: value.outputTokens,
-              totalTokens: value.totalTokens,
-              usd: roundUsd(value.usd),
-            },
-          ]),
-        ),
-        methodology: this.methodology,
-      };
+      const entry = this.buildLogEntry({ type, handoff, source });
       fs.appendFileSync(LOG_FILE, JSON.stringify(entry) + '\n');
-      if (!isHandoff) this._clearLive();
+      if (clearLive) this._clearLive();
+      return true;
     } catch {
-      // Silently ignore log write failures — never crash the CLI
+      return false;
     }
+  }
+
+  /**
+   * Save the current session summary to the usage log (for Dashboard).
+   * Called automatically on Handoff or clean exit.
+   */
+  saveToLog(isHandoff = false) {
+    this.appendLogEntry({
+      type: 'session_end',
+      handoff: isHandoff,
+      source: 'repl',
+      clearLive: !isHandoff,
+    });
   }
 
   markHandoff() {

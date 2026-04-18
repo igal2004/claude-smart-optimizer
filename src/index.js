@@ -26,6 +26,7 @@ import { handleTemplateCommand } from './core/templates.js';
 import { loadConfig }  from './core/config.js';
 import { printBanner, printStatus } from './ui/display.js';
 import { countTokens } from './core/token-utils.js';
+import { ensureDashboardServer, openDashboardBrowser } from './dashboard/control.js';
 
 const config         = loadConfig();
 const interceptor    = new Interceptor(config);
@@ -259,21 +260,14 @@ async function runHandoff(backend) {
 }
 
 async function openDashboard() {
-  const serverPath = new URL('./dashboard/server.js', import.meta.url).pathname;
   console.log('\n🌐 [CCSO] פותח דשבורד...');
-  const child = spawn(process.execPath, [serverPath], {
-    detached: true,
-    stdio:    'ignore',
-  });
-  child.unref();
-  setTimeout(() => {
-    const url    = 'http://localhost:3847';
-    const opener = process.platform === 'darwin' ? 'open'
-                 : process.platform === 'win32'  ? 'start'
-                 : 'xdg-open';
-    spawn(opener, [url], { detached: true, stdio: 'ignore' }).unref();
-    console.log(`  ✅ דשבורד: ${url}\n`);
-  }, 1000);
+  const { url, ready } = await ensureDashboardServer({ attached: false });
+  if (!ready) {
+    console.log('  ❌ לא הצלחתי להרים את שרת הדשבורד.\n');
+    return;
+  }
+  openDashboardBrowser(url);
+  console.log(`  ✅ דשבורד: ${url}\n`);
 }
 
 main().catch(console.error);

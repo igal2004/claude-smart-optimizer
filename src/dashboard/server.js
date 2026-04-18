@@ -1,10 +1,10 @@
 /**
  * CCSO Dashboard Server
- * Lightweight Express server that serves the dashboard UI and exposes
- * a read-only API over the local log file.
+ * Lightweight Express server that serves the dashboard UI, usage data,
+ * and the local dashboard chat endpoint.
  *
  * Start: node src/dashboard/server.js
- * Or via: cc --dashboard
+ * Or via: ccso --dashboard
  */
 
 import express from 'express';
@@ -18,6 +18,12 @@ import { getCCSOPath } from '../core/storage-paths.js';
 import { getPricingMethodology } from '../core/pricing.js';
 import { getFeatureCatalog, getFeatureStateMap } from '../core/feature-catalog.js';
 import { getSupportedPlatformStatuses } from '../core/platform-support.js';
+import { Interceptor } from '../core/interceptor.js';
+import { ModelRouter } from '../core/model-router.js';
+import { PromptCache } from '../core/cache.js';
+import { Memory } from '../core/memory.js';
+import { ContextMonitor } from '../core/context-monitor.js';
+import { countTokens } from '../core/token-utils.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -26,6 +32,10 @@ const LOG_FILE  = getCCSOPath('usage.log');
 const LIVE_FILE = getCCSOPath('session_live.json');
 const PORT = 3847; // Unlikely to conflict with other services
 const config = loadConfig();
+const interceptor = new Interceptor(config);
+const modelRouter = new ModelRouter(config);
+const promptCache = new PromptCache(config);
+const memory = new Memory(config);
 
 const app = express();
 
@@ -169,7 +179,7 @@ app.get('/api/daily', (req, res) => {
 app.get('/api/sessions', (req, res) => {
   const { entries } = readLogData();
   const items = entries
-    .filter(e => e.type === 'session_end')
+    .filter(e => e.type === 'session_end' || e.type === 'turn')
     .slice(-20)
     .reverse()
     .map(e => ({
@@ -180,8 +190,9 @@ app.get('/api/sessions', (req, res) => {
       netSavingsUsd: round(e.estimatedNetSavingsUsd || e.dollarsSaved || 0),
       model:        e.model || 'sonnet',
       backend:      e.backend || 'claude',
+      source:       getActivitySourceLabel(e),
       handoff:      e.handoff ? 'כן' : 'לא',
-      duration:     e.duration ? `${e.duration} דק'` : '—',
+      duration:     e.type === 'turn' ? '—' : e.duration ? `${e.duration} דק'` : '—',
     }));
 
   res.json(items);
@@ -211,36 +222,81 @@ app.post('/api/prompt', express.json(), async (req, res) => {
     });
   }
 
-  // Basic secret scan
-  const warnings = [];
-  if (/sk-[a-zA-Z0-9]{20,}/.test(prompt)) warnings.push('זוהה מפתח API אפשרי בפרומפט');
-  if (/AKIA[A-Z0-9]{16}/.test(prompt))     warnings.push('זוהה מפתח AWS אפשרי בפרומפט');
-
-  // Simple Hebrew detection (for metadata)
-  const hasHebrew = /[\u0590-\u05FF]/.test(prompt);
-
-  // Model routing
-  const lower = prompt.toLowerCase();
-  let model = null;
-  if (/^(what|מה|how|תסביר|explain|hello|שלום|hi|yes|no|כן|לא)\b/.test(lower.trim())) {
-    model = 'claude-haiku-4-5-20251001';
-  } else if (/(architect|design|refactor|system|optimize|security|ארכיטקטורה)/.test(lower)) {
-    model = 'claude-opus-4-6';
-  }
-
-  const args = ['--print', prompt];
-  if (model) args.unshift('--model', model);
-
   try {
+    const processed = await interceptor.processWithStats(prompt);
+    const memoryPrefix = memory.buildContextPrefix(processed.text);
+    const finalPrompt = memoryPrefix + processed.text;
+    const route = modelRouter.route(processed.text);
+    const promptTokens = countTokens(finalPrompt);
+    const translated = processed.actions.some((action) => action.includes('תורגם'));
+    const turnMonitor = new ContextMonitor(config, { liveWrites: false });
+    turnMonitor.trackCommand();
+
+    const cached = promptCache.get(finalPrompt, route.model);
+    if (cached) {
+      const outputTokens = countTokens(cached.response);
+      turnMonitor.trackTurn({
+        promptTokens,
+        outputTokens,
+        model: route.model,
+        savingsBreakdown: processed.savings,
+        cacheHit: true,
+      });
+      turnMonitor.appendLogEntry({
+        type: 'turn',
+        source: 'dashboard-chat',
+        clearLive: true,
+      });
+
+      return res.json({
+        response: cached.response,
+        model: route.model || 'sonnet',
+        translated,
+        warnings: processed.warnings,
+        cacheHit: true,
+        optimizations: processed.actions,
+        tokens: {
+          prompt: promptTokens,
+          output: outputTokens,
+          avoided: turnMonitor.tokensAvoided,
+        },
+      });
+    }
+
+    const args = [...route.args, '--print', finalPrompt];
     const { stdout, stderr } = await execFileAsync('claude', args, { timeout: 120_000 });
+    const responseText = stdout.trim() || stderr.trim();
+    const outputTokens = countTokens(responseText);
+
+    turnMonitor.trackTurn({
+      promptTokens,
+      outputTokens,
+      model: route.model,
+      savingsBreakdown: processed.savings,
+      cacheHit: false,
+    });
+    turnMonitor.appendLogEntry({
+      type: 'turn',
+      source: 'dashboard-chat',
+      clearLive: true,
+    });
+    promptCache.set(finalPrompt, responseText, route.model || 'sonnet');
+
     res.json({
-      response: stdout.trim() || stderr.trim(),
-      model: model || 'claude-sonnet-4-6',
-      translated: hasHebrew,
-      warnings,
+      response: responseText,
+      model: route.model || 'sonnet',
+      translated,
+      warnings: processed.warnings,
+      cacheHit: false,
+      optimizations: processed.actions,
+      tokens: {
+        prompt: promptTokens,
+        output: outputTokens,
+        avoided: turnMonitor.tokensAvoided,
+      },
     });
   } catch (e) {
-    res.status(500).json({ error: e.message, warnings });
+    res.status(500).json({ error: e.message, warnings: [] });
   }
 });
 
@@ -262,6 +318,11 @@ function readLogData() {
 
 function round(n) {
   return Math.round(n * 10000) / 10000;
+}
+
+function getActivitySourceLabel(entry) {
+  if (entry.type === 'turn' && entry.source === 'dashboard-chat') return 'Dashboard chat';
+  return 'CLI session';
 }
 
 function getOptimizerSettings(currentConfig) {
