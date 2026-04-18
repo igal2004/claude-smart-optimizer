@@ -19,6 +19,9 @@ const { loadConfig } = await import('../src/core/config.js');
 const { getCCSOPath } = await import('../src/core/storage-paths.js');
 const { getFeatureCatalog } = await import('../src/core/feature-catalog.js');
 const { getSupportedPlatformStatuses } = await import('../src/core/platform-support.js');
+const { PromptBundler, handleBundleCommand } = await import('../src/core/prompt-bundler.js');
+const { ProjectBriefs } = await import('../src/core/briefs.js');
+const { extractTunnelUrl } = await import('../src/dashboard/share.js');
 
 const cfg = { get: (k) => ({ gitContext: false, translate: false }[k]) };
 let passed = 0;
@@ -82,7 +85,11 @@ assert('translate is disabled by default', appConfig.get('translate') === false)
 assert('code compression is disabled by default', appConfig.get('codeCompression') === false);
 assert('response hints are disabled by default', appConfig.get('responseLengthHints') === false);
 assert('prompt cache is enabled by default', appConfig.get('promptCache') === true);
+assert('briefs are enabled by default', appConfig.get('briefsEnabled') === true);
+assert('brief token budget has a default value', appConfig.get('briefTokenBudget') === 220);
 assert('memory token budget has a default value', appConfig.get('memoryTokenBudget') === 180);
+assert('reset advisor is enabled by default', appConfig.get('resetAdvisor') === true);
+assert('reset advisor turn threshold has a default value', appConfig.get('resetAdvisorTurns') === 15);
 
 // ── ContextMonitor ────────────────────────────────────────────────────────────
 console.log('\n── ContextMonitor ──');
@@ -141,6 +148,28 @@ const lastEntry = usageEntries[usageEntries.length - 1];
 assert('custom log entry keeps source metadata', lastEntry.type === 'turn' && lastEntry.source === 'dashboard-chat');
 assert('live-writes can be disabled for dashboard turns', !fs.existsSync(liveFile));
 
+const resetMonitor = new ContextMonitor(
+  {
+    get: (k) => ({
+      costThreshold: 100,
+      commandThreshold: 25,
+      backend: 'claude',
+      resetAdvisor: true,
+      resetAdvisorTurns: 2,
+      resetAdvisorMinutes: 999,
+      resetAdvisorTokenThreshold: 999999,
+    }[k]),
+  },
+  { liveWrites: false },
+);
+resetMonitor.trackTurn({ promptTokens: 15, outputTokens: 25, model: 'sonnet' });
+resetMonitor.trackTurn({ promptTokens: 20, outputTokens: 30, model: 'sonnet' });
+const resetStatus = resetMonitor.getStatus();
+assert('tracks turn count for reset advisor', resetStatus.turns === 2);
+assert('reset advisor recommends reset after threshold', resetStatus.resetAdvice?.recommended === true);
+assert('reset advisor emits a notice once', resetMonitor.consumeResetAdviceNotice()?.recommended === true);
+assert('reset advisor notice is deduplicated', resetMonitor.consumeResetAdviceNotice() === null);
+
 // ── PromptCache ───────────────────────────────────────────────────────────────
 console.log('\n── PromptCache ──');
 const cache = new PromptCache({ get: () => undefined });
@@ -154,6 +183,15 @@ assert('cache matches conservative whitespace normalization', cache.get('  promp
 assert('cache size',                cache.size() === 2);
 cache.clear();
 assert('cache cleared',             cache.size() === 0);
+
+// ── PromptBundler ────────────────────────────────────────────────────────────
+console.log('\n── PromptBundler ──');
+const bundler = new PromptBundler();
+const bundledPrompt = bundler.bundle('fix login bug; add tests; explain root cause');
+assert('bundler combines multiple items', bundledPrompt.bundled && bundledPrompt.itemCount === 3);
+assert('bundler produces numbered tasks', bundledPrompt.prompt.includes('1. fix login bug'));
+assert('bundle command dispatches when multiple tasks exist', handleBundleCommand('/bundle fix login bug; add tests').dispatch === true);
+assert('bundle command asks for more than one item', handleBundleCommand('/bundle only one task').dispatch === false);
 
 // ── Memory ───────────────────────────────────────────────────────────────────
 console.log('\n── Memory ──');
@@ -176,6 +214,37 @@ assert('memory filters unrelated global facts when there is a match', !memoryCon
 memory.clear();
 memory.clear(true);
 
+// ── ProjectBriefs ────────────────────────────────────────────────────────────
+console.log('\n── ProjectBriefs ──');
+const briefFile = path.join(testHome, 'ARCHITECTURE.md');
+fs.writeFileSync(briefFile, [
+  '# Auth Flow',
+  '',
+  'Authentication lives in src/auth/service.js and handles login plus refresh tokens.',
+  '',
+  '## Notes',
+  '',
+  '- Billing uses Stripe webhooks.',
+].join('\n'));
+
+const briefs = new ProjectBriefs({
+  get: (key) => ({
+    briefsEnabled: true,
+    briefTokenBudget: 220,
+  }[key]),
+});
+
+const savedBrief = briefs.save(briefFile);
+assert('brief save records markdown files', savedBrief.kind === 'Markdown');
+assert('brief show returns stored entry', briefs.show(briefFile)?.path === savedBrief.path);
+const briefContext = briefs.getContextForQuery('Please update ARCHITECTURE.md and the auth flow docs');
+assert('brief context is injected when file is mentioned', briefContext.matches.some((match) => match.endsWith('ARCHITECTURE.md')));
+assert('brief context contains saved brief marker', briefContext.prefix.includes('[Saved brief:'));
+fs.writeFileSync(briefFile, '# Auth Flow\n\nThis file changed after the brief was saved.\n');
+const staleBriefContext = briefs.getContextForQuery('ARCHITECTURE.md');
+assert('stale briefs are detected and skipped', staleBriefContext.stale.some((match) => match.endsWith('ARCHITECTURE.md')) && staleBriefContext.matches.length === 0);
+briefs.clear();
+
 // ── Platform Support ──────────────────────────────────────────────────────────
 console.log('\n── Platform Support ──');
 const platforms = await getSupportedPlatformStatuses();
@@ -190,6 +259,15 @@ const featureCatalog = getFeatureCatalog(appConfig);
 assert('feature catalog marks translate as disabled by default', featureCatalog.find((f) => f.id === 'translate')?.enabled === false);
 assert('feature catalog marks smart routing as enabled', featureCatalog.find((f) => f.id === 'model-routing')?.enabled === true);
 assert('feature catalog exposes cache toggle state', featureCatalog.find((f) => f.id === 'cache')?.enabled === true);
+assert('feature catalog exposes briefs as estimated context reuse', featureCatalog.find((f) => f.id === 'briefs')?.dashboardCategory === 'estimated-impact');
+assert('feature catalog exposes prompt bundler as workflow helper', featureCatalog.find((f) => f.id === 'prompt-bundler')?.dashboardCategory === 'workflow-quality');
+assert('feature catalog exposes reset advisor as quota hygiene', featureCatalog.find((f) => f.id === 'session-reset-advisor')?.dashboardCategory === 'quota-hygiene');
+
+// ── Dashboard Share ──────────────────────────────────────────────────────────
+console.log('\n── Dashboard Share ──');
+assert('extract tunnel URL from localtunnel output', extractTunnelUrl('your url is: https://ccso-demo.loca.lt\n') === 'https://ccso-demo.loca.lt');
+assert('extract tunnel URL from cloudflared output', extractTunnelUrl('trycloudflare url: https://bright-moon.trycloudflare.com') === 'https://bright-moon.trycloudflare.com');
+assert('no tunnel URL returns null', extractTunnelUrl('waiting for tunnel...') === null);
 
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log(`\n${'─'.repeat(40)}`);

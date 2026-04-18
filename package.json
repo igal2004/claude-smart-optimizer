@@ -16,6 +16,7 @@
     "mcp": "node bin/mcp.js",
     "notebooklm": "node bin/notebooklm.js",
     "dashboard": "node src/dashboard/server.js",
+    "share-dashboard": "node src/dashboard/share.js",
     "test": "node tests/test.js"
   },
   "keywords": [

@@ -22,8 +22,10 @@ import { Interceptor } from '../core/interceptor.js';
 import { ModelRouter } from '../core/model-router.js';
 import { PromptCache } from '../core/cache.js';
 import { Memory } from '../core/memory.js';
+import { ProjectBriefs } from '../core/briefs.js';
 import { ContextMonitor } from '../core/context-monitor.js';
 import { countTokens } from '../core/token-utils.js';
+import { handleBundleCommand } from '../core/prompt-bundler.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -36,6 +38,7 @@ const interceptor = new Interceptor(config);
 const modelRouter = new ModelRouter(config);
 const promptCache = new PromptCache(config);
 const memory = new Memory(config);
+const briefs = new ProjectBriefs(config);
 
 const app = express();
 
@@ -223,9 +226,27 @@ app.post('/api/prompt', express.json(), async (req, res) => {
   }
 
   try {
-    const processed = await interceptor.processWithStats(prompt);
+    let dispatchPrompt = prompt.trim();
+    const runtimeActions = [];
+    const bundleResult = handleBundleCommand(dispatchPrompt);
+    if (bundleResult.handled) {
+      if (!bundleResult.dispatch) {
+        return res.status(400).json({ error: bundleResult.message.trim(), warnings: [] });
+      }
+      dispatchPrompt = bundleResult.prompt;
+      runtimeActions.push(`📦 אוגדו ${bundleResult.itemCount} סעיפים לבקשה אחת`);
+    }
+
+    const processed = await interceptor.processWithStats(dispatchPrompt);
+    const briefCtx = briefs.getContextForQuery(processed.text);
     const memoryPrefix = memory.buildContextPrefix(processed.text);
-    const finalPrompt = memoryPrefix + processed.text;
+    if (briefCtx.matches.length) {
+      runtimeActions.push(`📚 brief נטען עבור: ${briefCtx.matches.join(', ')}`);
+    }
+    if (briefCtx.stale.length) {
+      processed.warnings.push(`briefs מיושנים דולגו: ${briefCtx.stale.join(', ')}`);
+    }
+    const finalPrompt = memoryPrefix + briefCtx.prefix + processed.text;
     const route = modelRouter.route(processed.text);
     const promptTokens = countTokens(finalPrompt);
     const translated = processed.actions.some((action) => action.includes('תורגם'));
@@ -254,7 +275,7 @@ app.post('/api/prompt', express.json(), async (req, res) => {
         translated,
         warnings: processed.warnings,
         cacheHit: true,
-        optimizations: processed.actions,
+        optimizations: [...runtimeActions, ...processed.actions],
         tokens: {
           prompt: promptTokens,
           output: outputTokens,
@@ -288,7 +309,7 @@ app.post('/api/prompt', express.json(), async (req, res) => {
       translated,
       warnings: processed.warnings,
       cacheHit: false,
-      optimizations: processed.actions,
+      optimizations: [...runtimeActions, ...processed.actions],
       tokens: {
         prompt: promptTokens,
         output: outputTokens,
@@ -328,6 +349,8 @@ function getActivitySourceLabel(entry) {
 function getOptimizerSettings(currentConfig) {
   const promptCacheEnabled = currentConfig.get('promptCache') !== false;
   const memoryEnabled = currentConfig.get('memoryEnabled') !== false;
+  const briefEntries = briefs.list();
+  const staleBriefCount = briefEntries.filter((entry) => entry.stale).length;
 
   return {
     promptCache: {
@@ -340,6 +363,20 @@ function getOptimizerSettings(currentConfig) {
       tokenBudget: Number(currentConfig.get('memoryTokenBudget')) || 180,
       maxFacts: Number(currentConfig.get('memoryMaxFacts')) || 6,
       mode: memoryEnabled ? 'relevance-scoped' : 'disabled',
+    },
+    briefs: {
+      enabled: currentConfig.get('briefsEnabled') !== false,
+      tokenBudget: Number(currentConfig.get('briefTokenBudget')) || 220,
+      mode: 'saved-file-briefs',
+      savedCount: briefEntries.length,
+      staleCount: staleBriefCount,
+    },
+    resetAdvisor: {
+      enabled: currentConfig.get('resetAdvisor') !== false,
+      turns: Number(currentConfig.get('resetAdvisorTurns')) || 15,
+      minutes: Number(currentConfig.get('resetAdvisorMinutes')) || 90,
+      tokenThreshold: Number(currentConfig.get('resetAdvisorTokenThreshold')) || 12000,
+      mode: 'session-hygiene-advice',
     },
     trimLogs: {
       enabled: currentConfig.get('trimLogs') !== false,

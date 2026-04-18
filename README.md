@@ -14,6 +14,9 @@ CCSO works best when it is the process that actually sends the prompt. That is w
 | Conservative cache | Repeated prompts can reuse prior answers | measured and shown in the dashboard |
 | Focused log trimming | Large noisy logs are reduced to the useful error window | enabled by default |
 | Relevance-scoped memory | Small, relevant project facts are injected under a token budget | enabled by default |
+| Reusable file briefs | Save a short brief for files you mention often and inject it only on reuse | available, but shown as estimated context reuse |
+| Prompt bundler | Combine several asks into one structured request via `/bundle` | workflow helper, not counted as direct savings |
+| Session reset advisor | Warns when a session gets too long or too bloated | session hygiene, not counted as direct savings |
 | Optional lossy features | Translate, code compression, dedupe, truncation, output hints | off by default for safety |
 | Dashboard | Live stats, savings breakdown, platform support, dashboard chat | savings are shown only where CCSO can truly measure them |
 
@@ -37,6 +40,8 @@ The dashboard is intentionally strict:
 
 - `Spend` is measured only for prompts that CCSO itself sends.
 - `Net savings` is an estimate based on prompt reduction, cache hits, routing impact, and shorter outputs.
+- `Memory` and `Saved briefs` are shown as context-reuse helpers, not as hard measured savings.
+- `Prompt bundling`, `handoff`, and `reset advisor` are shown as workflow/session hygiene features, not as direct savings.
 - IDE-only tools such as Cursor, Windsurf, and Copilot are not counted in spend or savings.
 - The dashboard distinguishes between `Measured`, `Estimated`, and `Not measured` support paths.
 
@@ -45,6 +50,14 @@ Start it with:
 ```bash
 ccso --dashboard
 ```
+
+To share the real live local dashboard publicly, use:
+
+```bash
+ccso --share-dashboard
+```
+
+This opens a tunnel to your local machine, so it keeps the real functions, local logs, and Claude-backed chat instead of deploying a broken static copy.
 
 Or, on macOS, you can double-click:
 
@@ -79,6 +92,7 @@ ccso
 ccso                     start the Smart REPL
 ccso --init              create project files such as CLAUDE.md
 ccso --dashboard         open the browser dashboard
+ccso --share-dashboard   share the live local dashboard through a public tunnel
 ccso --config            edit settings
 ccso --status            show current status
 ccso --uninstall         remove CCSO
@@ -96,6 +110,8 @@ Inside the REPL:
 /cache clear
 /history
 /memory
+/brief
+/bundle
 /template
 /dashboard
 /exit
@@ -120,9 +136,15 @@ CCSO now ships with conservative defaults. Lossy features stay off until you exp
 | `gitContext` | `true` |
 | `smartRouting` | `true` |
 | `promptCache` | `true` |
+| `briefsEnabled` | `true` |
+| `briefTokenBudget` | `220` |
 | `memoryEnabled` | `true` |
 | `memoryTokenBudget` | `180` |
 | `memoryMaxFacts` | `6` |
+| `resetAdvisor` | `true` |
+| `resetAdvisorTurns` | `15` |
+| `resetAdvisorMinutes` | `90` |
+| `resetAdvisorTokenThreshold` | `12000` |
 
 Open the interactive settings screen with:
 

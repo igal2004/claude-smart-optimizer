@@ -601,12 +601,214 @@
     .inline-pill.bad,
     .f-chip.bad { background: #321818; color: #ff9b9b; border-color: #6a3030; }
     .profile-box { margin-bottom: 20px; }
+    .guide-section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .guide-section-sub {
+      max-width: 740px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .guide-shell {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.92fr) minmax(0, 1.28fr);
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 980px) { .guide-shell { grid-template-columns: 1fr; } }
+    .guide-focus {
+      position: relative;
+      overflow: hidden;
+      border-radius: 24px;
+      padding: 22px;
+      background:
+        radial-gradient(circle at top left, rgba(96, 228, 218, 0.16), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(126, 208, 255, 0.16), transparent 36%),
+        linear-gradient(180deg, rgba(10, 18, 30, 0.96), rgba(8, 13, 23, 0.98));
+      border: 1px solid rgba(126, 208, 255, 0.18);
+      box-shadow: 0 28px 56px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.04);
+      min-height: 100%;
+    }
+    .guide-focus::after {
+      content: "";
+      position: absolute;
+      inset: auto -40px -40px auto;
+      width: 140px;
+      height: 140px;
+      background: radial-gradient(circle, rgba(96, 228, 218, 0.14), transparent 68%);
+      pointer-events: none;
+    }
+    .guide-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(17, 29, 47, 0.92);
+      border: 1px solid rgba(126, 208, 255, 0.16);
+      color: #b7dfff;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .guide-focus-title {
+      font-size: 25px;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 10px;
+      color: var(--text);
+      max-width: 12ch;
+    }
+    .guide-focus-copy {
+      color: var(--text-soft);
+      font-size: 14px;
+      line-height: 1.8;
+      max-width: 36ch;
+      margin-bottom: 16px;
+    }
+    .guide-focus-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .guide-focus-actions {
+      display: grid;
+      gap: 10px;
+    }
+    .guide-focus-action {
+      background: rgba(10, 16, 28, 0.72);
+      border: 1px solid rgba(148, 175, 219, 0.12);
+      border-radius: 16px;
+      padding: 12px 14px;
+    }
+    .guide-focus-action-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .guide-focus-action-value {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .guide-focus-action-sub {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .guide-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 12px;
+    }
+    .guide-card {
+      background: linear-gradient(180deg, rgba(12, 20, 34, 0.94), rgba(8, 14, 24, 0.98));
+      border: 1px solid rgba(148, 175, 219, 0.12);
+      border-radius: 20px;
+      padding: 16px;
+      display: grid;
+      gap: 10px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .guide-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(126, 208, 255, 0.22);
+      box-shadow: 0 16px 32px rgba(0,0,0,0.18);
+    }
+    .guide-card.is-priority {
+      border-color: rgba(241, 201, 107, 0.28);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    .guide-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .guide-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.35;
+    }
+    .guide-card-copy {
+      font-size: 12px;
+      line-height: 1.75;
+      color: var(--muted);
+    }
+    .guide-card-action {
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text-soft);
+      background: rgba(255,255,255,0.02);
+      border: 1px dashed rgba(148, 175, 219, 0.18);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+    .guide-card-note {
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+    .guide-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .guide-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      background: #10161d;
+      color: var(--muted);
+    }
+    .guide-badge.measured { background: #111d2f; color: var(--blue); border-color: #2d4a6b; }
+    .guide-badge.guidance { background: #23212b; color: #d2b3ff; border-color: #4e3d66; }
+    .guide-badge.estimated { background: #12262d; color: #7fe9de; border-color: #28565d; }
+    .guide-badge.quota { background: #2d2413; color: #f2cc60; border-color: #6b5316; }
+    .guide-badge.platform { background: #2a1911; color: #ffb692; border-color: #6a3d28; }
+    .guide-badge.info { background: #111d2f; color: var(--blue); border-color: #2d4a6b; }
+    .guide-badge.good { background: #14321f; color: var(--green); border-color: #1f6f43; }
+    .guide-badge.warn { background: #332710; color: #f2cc60; border-color: #6b5316; }
+    .guide-badge.bad { background: #321818; color: #ff9b9b; border-color: #6a3030; }
 
     /* ── Features Grid ── */
     .features-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 14px;
+    }
+    .feature-section + .feature-section { margin-top: 18px; }
+    .feature-section-head {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+    .feature-section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .feature-section-sub {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--muted);
     }
     .feature-item {
       background: linear-gradient(180deg, rgba(14, 23, 39, 0.86), rgba(9, 17, 29, 0.92));
@@ -642,6 +844,9 @@
     .f-caution { background: #332710; color: #f2cc60; }
     .f-optional { background: #1f2130; color: #c4b5fd; }
     .f-measured { background: #111d2f; color: var(--blue); }
+    .f-estimated { background: #12262d; color: #7fe9de; }
+    .f-advice { background: #23212b; color: #d2b3ff; }
+    .f-quota { background: #2d2413; color: #f2cc60; }
 
     /* ── Chat ── */
     .chat-container {
@@ -998,6 +1203,34 @@
         </div>
       </div>
 
+      <div class="box">
+        <div class="guide-section-head">
+          <div>
+            <h2 style="margin-bottom:8px">Token Hygiene Guide</h2>
+            <div class="guide-section-sub">
+              מדריך עבודה נכון שמבוסס על פיצ'רים קיימים ב-CCSO ועל הרגלים מוכחים. חשוב: זה אזור הדרכה תפעולית, לא עוד מקום שבו CCSO "מחשב" חיסכון שלא באמת נמדד.
+            </div>
+          </div>
+          <div class="inline-pills" style="margin-top:0">
+            <span class="inline-pill good">Measured tips stay separate</span>
+            <span class="inline-pill info">Guidance is not direct savings</span>
+          </div>
+        </div>
+        <div class="guide-shell">
+          <div class="guide-focus" id="tokenGuideHero">
+            <div class="guide-kicker">Work Smarter</div>
+            <div class="guide-focus-title">טוען המלצה מובילה...</div>
+            <div class="guide-focus-copy">הדשבורד יראה כאן את ההמלצה הכי רלוונטית כרגע לפי מצב הסשן והפיצ'רים הפעילים.</div>
+          </div>
+          <div class="guide-list" id="tokenGuideList">
+            <div class="guide-card">
+              <div class="guide-card-title">טוען מדריך...</div>
+              <div class="guide-card-copy">ההמלצות יופיעו כאן בעוד רגע.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="charts">
       <div class="box chart-panel" style="margin:0">
         <div class="chart-head">
@@ -1015,7 +1248,7 @@
         <div class="chart-head">
           <div>
             <h2>חיסכון יומי ($)</h2>
-            <div class="chart-subtitle">אומדן חיסכון לפי קיצור פרומפטים, cache, memory injection ורכיבי optimization פעילים.</div>
+            <div class="chart-subtitle">אומדן חיסכון לפי קיצור פרומפטים, cache, response hints והשפעת routing בלבד.</div>
           </div>
           <div class="chart-badge savings">אומדן</div>
         </div>
@@ -1130,7 +1363,7 @@
     <!-- ── Page: Features ── -->
     <div class="page" id="page-features">
       <div class="page-title">⚙️ פיצ'רים פעילים</div>
-      <div class="page-sub">מה באמת פועל, מה כבוי כברירת מחדל, ואילו פיצ'רים נשארו opt-in כדי לא לפגוע באיכות</div>
+      <div class="page-sub">מה באמת נמדד, מה רק משפר workflow או reuse, ומה נשאר session hygiene כדי לא להטעות לגבי חיסכון</div>
 
       <div class="box profile-box">
         <h2>Current Optimization Profile</h2>
@@ -1154,8 +1387,36 @@
         </span>
       </div>
 
-      <div class="features-grid" id="featuresGrid">
-        <!-- filled by JS -->
+      <div class="box feature-section">
+        <div class="feature-section-head">
+          <div class="feature-section-title">Measured Savings</div>
+          <div class="feature-section-sub">כאן נמצאים רק פיצ'רים שבהם CCSO יודע לייחס חיסכון ישיר בטוקנים או ב-USD מתוך המסלול שלו עצמו.</div>
+        </div>
+        <div class="features-grid" id="featuresMeasuredGrid"></div>
+      </div>
+
+      <div class="box feature-section">
+        <div class="feature-section-head">
+          <div class="feature-section-title">Estimated Context Reuse</div>
+          <div class="feature-section-sub">פיצ'רים שעוזרים לא לטעון מחדש את אותו הקשר, אבל CCSO לא יכול לדעת בוודאות מה היית מדביק אחרת ולכן לא סופר אותם כחיסכון קשיח.</div>
+        </div>
+        <div class="features-grid" id="featuresEstimatedGrid"></div>
+      </div>
+
+      <div class="box feature-section">
+        <div class="feature-section-head">
+          <div class="feature-section-title">Workflow / Quality</div>
+          <div class="feature-section-sub">כלי עבודה שמשפרים איכות, סדר ובהירות, בלי לטעון שהם חוסכים טוקנים באופן מדיד.</div>
+        </div>
+        <div class="features-grid" id="featuresWorkflowGrid"></div>
+      </div>
+
+      <div class="box feature-section">
+        <div class="feature-section-head">
+          <div class="feature-section-title">Quota / Session Hygiene</div>
+          <div class="feature-section-sub">מנגנונים שעוזרים לא לתת לסשן להתנפח יותר מדי. זה חשוב, אבל לא מוצג כחיסכון ישיר.</div>
+        </div>
+        <div class="features-grid" id="featuresQuotaGrid"></div>
       </div>
     </div>
 
@@ -1278,9 +1539,22 @@ async function loadStats() {
       hasRealData,
       liveActive: live.active,
     });
-    renderOptimizerSnapshot(d.optimizerSettings || {}, d.featureStates || {}, 'optimizerSnapshot');
-
+    const optimizerSettings = d.optimizerSettings || {};
+    const resetAdvice = live.resetAdvice || d.resetAdvice || null;
+    renderOptimizerSnapshot(optimizerSettings, d.featureStates || {}, 'optimizerSnapshot', resetAdvice);
     renderMethodology(d.methodology, mergedBreakdown, d.backend);
+    renderTokenHygieneGuide({
+      settings: optimizerSettings,
+      live,
+      hasRealData,
+      totalCost,
+      totalSaved,
+      totalCommands: (d.totalCommands || 0) + liveCmds,
+      totalTokensAvoided,
+      totalInputTokens,
+      totalOutputTokens,
+      resetAdvice,
+    });
   } catch(e) { console.error(e); }
 }
 
@@ -1401,7 +1675,7 @@ function renderSavingsSignal({
   `).join('');
 }
 
-function renderOptimizerSnapshot(settings = {}, stateMap = {}, targetId = 'optimizerSnapshot') {
+function renderOptimizerSnapshot(settings = {}, stateMap = {}, targetId = 'optimizerSnapshot', resetAdvice = null) {
   const root = document.getElementById(targetId);
   if (!root) return;
 
@@ -1431,6 +1705,14 @@ function renderOptimizerSnapshot(settings = {}, stateMap = {}, targetId = 'optim
       tone: settings.memory?.enabled ? 'info' : 'warn',
     },
     {
+      label: 'Saved briefs',
+      value: settings.briefs?.enabled ? 'Ready' : 'Off',
+      sub: settings.briefs?.enabled
+        ? `Budget ${fmt(settings.briefs.tokenBudget)} tokens · inject only on file mention`
+        : 'אין brief reuse שמור',
+      tone: settings.briefs?.enabled ? 'info' : 'warn',
+    },
+    {
       label: 'Log trimming',
       value: settings.trimLogs?.enabled ? 'Error-focused' : 'Off',
       sub: settings.trimLogs?.enabled
@@ -1445,6 +1727,16 @@ function renderOptimizerSnapshot(settings = {}, stateMap = {}, targetId = 'optim
         ? 'Simple → Haiku · complex → Opus'
         : 'כל הפרומפטים נשלחים ללא ניתוב',
       tone: settings.routing?.enabled ? 'good' : 'bad',
+    },
+    {
+      label: 'Reset advisor',
+      value: resetAdvice?.recommended ? resetAdvice.label : (settings.resetAdvisor?.enabled ? 'On' : 'Off'),
+      sub: resetAdvice?.recommended
+        ? resetAdvice.reasons.join(' · ')
+        : settings.resetAdvisor?.enabled
+          ? `${settings.resetAdvisor.turns} turns · ${settings.resetAdvisor.minutes} min`
+          : 'Session advisor כבוי',
+      tone: resetAdvice?.recommended ? 'warn' : settings.resetAdvisor?.enabled ? 'info' : 'bad',
     },
     {
       label: 'Lossy features kept off',
@@ -1544,6 +1836,12 @@ function renderMethodology(methodology = {}, breakdown = {}, backend = 'claude')
     <div style="margin-bottom:10px">${methodology.note || 'הנתונים מוצגים כאומדן מקומי.'}</div>
     <div style="margin-bottom:10px">${methodology.spendIncludes || ''}</div>
     <div style="margin-bottom:10px">Pricing source: ${pricingSource}</div>
+    <div class="inline-pills" style="margin-bottom:10px">
+      <span class="inline-pill good">Measured savings: prompt reduction, cache, output hints, routing</span>
+      <span class="inline-pill info">Estimated impact: memory + saved briefs</span>
+      <span class="inline-pill" style="background:#23212b;color:#d2b3ff;border-color:#4e3d66">Workflow advice: bundling, templates, history</span>
+      <span class="inline-pill warn">Quota hygiene: handoff, reset advisor, time guard</span>
+    </div>
     <div style="font-size:12px;color:var(--muted)">
       ${(methodology.savingsIncludes || []).map(item => `• ${item}`).join('<br>')}
     </div>
@@ -1570,6 +1868,253 @@ function renderMethodology(methodology = {}, breakdown = {}, backend = 'claude')
       </tr>
     `;
   }).join('');
+}
+
+function renderTokenHygieneGuide({
+  settings = {},
+  live = {},
+  hasRealData = false,
+  totalCost = 0,
+  totalSaved = 0,
+  totalCommands = 0,
+  totalTokensAvoided = 0,
+  totalInputTokens = 0,
+  totalOutputTokens = 0,
+  resetAdvice = null,
+} = {}) {
+  const hero = document.getElementById('tokenGuideHero');
+  const list = document.getElementById('tokenGuideList');
+  if (!hero || !list) return;
+
+  const guideItems = buildTokenHygieneItems({
+    settings,
+    live,
+    hasRealData,
+    totalCost,
+    totalSaved,
+    totalCommands,
+    totalTokensAvoided,
+    totalInputTokens,
+    totalOutputTokens,
+    resetAdvice,
+  });
+
+  const lead = guideItems[0];
+  hero.innerHTML = `
+    <div class="guide-kicker">${lead.heroKicker || 'Work Smarter'}</div>
+    <div class="guide-focus-title">${lead.heroTitle || lead.title}</div>
+    <div class="guide-focus-copy">${lead.heroCopy || lead.copy}</div>
+    <div class="guide-focus-meta">
+      <span class="guide-badge ${lead.kindTone}">${lead.kindLabel}</span>
+      <span class="guide-badge ${lead.statusTone}">${lead.statusLabel}</span>
+      ${lead.countedLabel ? `<span class="guide-badge ${lead.countedTone || 'guidance'}">${lead.countedLabel}</span>` : ''}
+    </div>
+    <div class="guide-focus-actions">
+      <div class="guide-focus-action">
+        <div class="guide-focus-action-label">Recommended next step</div>
+        <div class="guide-focus-action-value">${lead.action}</div>
+        <div class="guide-focus-action-sub">${lead.actionSub}</div>
+      </div>
+      <div class="guide-focus-action">
+        <div class="guide-focus-action-label">Why this matters</div>
+        <div class="guide-focus-action-value">${lead.whyTitle}</div>
+        <div class="guide-focus-action-sub">${lead.note}</div>
+      </div>
+    </div>
+  `;
+
+  list.innerHTML = guideItems.map((item, index) => `
+    <div class="guide-card ${index === 0 ? 'is-priority' : ''}">
+      <div class="guide-card-head">
+        <div class="guide-card-title">${item.title}</div>
+        <span class="guide-badge ${item.statusTone}">${item.statusLabel}</span>
+      </div>
+      <div class="guide-badges">
+        <span class="guide-badge ${item.kindTone}">${item.kindLabel}</span>
+        ${item.countedLabel ? `<span class="guide-badge ${item.countedTone || 'guidance'}">${item.countedLabel}</span>` : ''}
+      </div>
+      <div class="guide-card-copy">${item.copy}</div>
+      <div class="guide-card-action"><strong>Try:</strong> ${item.action}<br>${item.actionSub}</div>
+      <div class="guide-card-note">${item.note}</div>
+    </div>
+  `).join('');
+}
+
+function buildTokenHygieneItems({
+  settings = {},
+  live = {},
+  hasRealData = false,
+  totalCost = 0,
+  totalSaved = 0,
+  totalCommands = 0,
+  totalTokensAvoided = 0,
+  totalInputTokens = 0,
+  totalOutputTokens = 0,
+  resetAdvice = null,
+} = {}) {
+  const liveTurns = live.active ? Number(live.turns || 0) : 0;
+  const liveSent = (live.estimatedInputTokens || 0) + (live.estimatedOutputTokens || 0);
+  const measuredRatio = (totalInputTokens + totalOutputTokens) > 0
+    ? (totalTokensAvoided / (totalInputTokens + totalOutputTokens)) * 100
+    : 0;
+  const briefCount = Number(settings.briefs?.savedCount || 0);
+  const staleBriefCount = Number(settings.briefs?.staleCount || 0);
+
+  const items = [
+    {
+      id: 'reset',
+      title: 'Reset or handoff before the session bloats',
+      kindLabel: 'Quota / session hygiene',
+      kindTone: 'quota',
+      countedLabel: 'Not counted as direct savings',
+      countedTone: 'quota',
+      statusLabel: resetAdvice?.recommended ? resetAdvice.label : (liveTurns >= 10 ? 'נהיה רלוונטי' : 'בשליטה'),
+      statusTone: resetAdvice?.recommended ? 'warn' : liveTurns >= 10 ? 'info' : 'good',
+      copy: 'ההרגל הזה מחליף את עצת "לפתוח צ׳אט חדש כל 15 הודעות" בכלל שקוף יותר: CCSO מסתכל על turns, זמן וטוקנים בפועל ומזהיר רק כשהסשן באמת מתחיל להתנפח.',
+      action: '<code>/handoff</code>',
+      actionSub: resetAdvice?.recommended
+        ? 'כדאי לבצע handoff עכשיו ולפתוח סשן נקי.'
+        : 'שמור את זה לרגע שבו turns, זמן או טוקנים מתחילים להצטבר.',
+      whyTitle: resetAdvice?.recommended ? 'Recommended right now' : 'Keeps context clean',
+      note: resetAdvice?.recommended
+        ? resetAdvice.reasons.join(' · ')
+        : 'היגיינת סשן טובה משפרת איכות, אבל לא מוצגת כחיסכון מדיד.',
+      score: resetAdvice?.recommended ? 100 : liveTurns >= 10 ? 68 : 44,
+      heroKicker: resetAdvice?.recommended ? 'Right Now' : 'Session Hygiene',
+      heroTitle: resetAdvice?.recommended ? 'הגיע זמן handoff' : 'אל תיתן לסשן להתנפח',
+      heroCopy: resetAdvice?.recommended
+        ? `הסשן כבר מראה סימני עומס: ${resetAdvice.reasons.join(' · ')}.`
+        : 'סשן קצר ונקי לרוב שומר על איכות טובה יותר מסשן אחד ארוך ומתנפח.',
+    },
+    {
+      id: 'bundle',
+      title: 'Bundle related asks into one prompt',
+      kindLabel: 'Workflow guidance',
+      kindTone: 'guidance',
+      countedLabel: 'Guidance, not hard measured savings',
+      countedTone: 'guidance',
+      statusLabel: totalCommands >= 4 ? 'High leverage now' : 'Ready',
+      statusTone: totalCommands >= 4 ? 'warn' : 'good',
+      copy: 'זה מיישם ישירות את ההרגל מהמסמך: במקום שלוש הודעות עם אותו רקע, בקשה אחת מסודרת טוענת את הקונטקסט המשותף פעם אחת בלבד.',
+      action: '<code>/bundle fix login bug; add tests; explain root cause</code>',
+      actionSub: 'השתמש בזה כשיש כמה סעיפים קשורים ולא כשאתה צריך חקירה פתוחה ונפרדת.',
+      whyTitle: 'Cuts repeated setup',
+      note: 'CCSO לא סופר את זה אוטומטית כחיסכון ישיר, כי הוא לא יודע כמה רקע היית כותב שוב ידנית.',
+      score: totalCommands >= 4 ? 92 : 78,
+      heroKicker: 'Shared Context',
+      heroTitle: 'אחד רקע, כמה משימות',
+      heroCopy: 'כשהמשימות קשורות, bundling חוסך טעינה חוזרת של אותו קונטקסט ומשפר את רצף העבודה.',
+    },
+    {
+      id: 'routing',
+      title: 'Use the right model for the job',
+      kindLabel: 'Measured with CCSO',
+      kindTone: 'measured',
+      countedLabel: settings.routing?.enabled ? 'Routing impact is measured' : 'Currently off',
+      countedTone: settings.routing?.enabled ? 'measured' : 'bad',
+      statusLabel: settings.routing?.enabled ? 'Running now' : 'Turn on',
+      statusTone: settings.routing?.enabled ? 'good' : 'bad',
+      copy: 'זו הגרסה של CCSO לעצת "תשתמש במודל הנכון": שאלות קלות לא חייבות לקבל את אותו מסלול כמו refactor כבד או audit.',
+      action: settings.routing?.enabled ? 'Keep smart routing enabled' : 'Enable smart routing in settings',
+      actionSub: settings.routing?.enabled
+        ? 'Simple work can go to Haiku while heavier tasks stay on stronger models.'
+        : 'בלי routing, כל הפרומפטים נשלחים ללא אופטימיזציית עלות.',
+      whyTitle: 'One of the safest savings levers',
+      note: 'ב-CCSO ההשפעה הזו כן מוערכת בדשבורד מול Sonnet baseline.',
+      score: settings.routing?.enabled ? 86 : 95,
+      heroKicker: settings.routing?.enabled ? 'Measured Lever' : 'Fix This First',
+      heroTitle: settings.routing?.enabled ? 'המודל הנכון כבר עובד בשבילך' : 'Smart routing כרגע כבוי',
+      heroCopy: settings.routing?.enabled
+        ? 'זה אחד המנגנונים הבודדים שבאמת גם עוזרים וגם נמדדים בדשבורד.'
+        : 'אם אתה רוצה חיסכון מדיד בלי לפגוע באיכות, זה המתג הראשון ששווה להדליק.',
+    },
+    {
+      id: 'briefs',
+      title: 'Save repeated file context once',
+      kindLabel: 'Estimated context reuse',
+      kindTone: 'estimated',
+      countedLabel: 'Not counted as direct savings',
+      countedTone: 'estimated',
+      statusLabel: briefCount > 0 ? `${briefCount} briefs ready` : 'No briefs yet',
+      statusTone: briefCount > 0 ? 'good' : 'warn',
+      copy: 'זה מקביל להרגלים מהמסמך כמו Projects ושמירת קונטקסט פעם אחת: במקום להדביק שוב את אותו קובץ או מסמך, שמור brief קצר והזרק אותו רק כשהקובץ מוזכר.',
+      action: '<code>/brief save src/auth/service.js</code>',
+      actionSub: briefCount > 0
+        ? `יש כרגע ${fmt(briefCount)} briefs שמורים${staleBriefCount ? `, מתוכם ${fmt(staleBriefCount)} מיושנים` : ''}.`
+        : 'מתאים במיוחד לקבצים, מסמכים ו-architecture notes שחוזרים שוב ושוב.',
+      whyTitle: 'Prevents repeated copy-paste',
+      note: 'הדשבורד מסווג את זה כ-context reuse בלבד, כי CCSO לא יודע איזה paste ידני נמנע בפועל.',
+      score: briefCount > 0 ? 88 : 82,
+      heroKicker: 'Reusable Context',
+      heroTitle: briefCount > 0 ? 'יש לך כבר קונטקסט שמור לשימוש חוזר' : 'עוד לא נשמרו briefs',
+      heroCopy: briefCount > 0
+        ? 'כדאי להשתמש ב-briefs על קבצים חוזרים במקום להעמיס כל פעם מחדש את אותו רקע.'
+        : 'אם יש לך קבצים או מסמכים שחוזרים הרבה, briefs הם אחד השדרוגים הכי שימושיים בלי lossy rewrite.',
+    },
+    {
+      id: 'memory',
+      title: 'Keep stable project facts in memory',
+      kindLabel: 'Estimated context reuse',
+      kindTone: 'estimated',
+      countedLabel: 'Context helper, not measured directly',
+      countedTone: 'estimated',
+      statusLabel: settings.memory?.enabled ? 'Active' : 'Off',
+      statusTone: settings.memory?.enabled ? 'good' : 'bad',
+      copy: 'המסמך דיבר על לשמור קונטקסט פעם אחת. ב-CCSO זה קיים דרך project memory: עובדות קצרות נשמרות ומוזרקות רק כשהן רלוונטיות.',
+      action: '<code>/memory add "Auth service lives in src/auth/service.js"</code>',
+      actionSub: settings.memory?.enabled
+        ? `Budget ${fmt(settings.memory.tokenBudget)} tokens · up to ${fmt(settings.memory.maxFacts)} facts`
+        : 'כדאי להדליק memory אם יש עובדות קבועות שאתה מסביר שוב ושוב.',
+      whyTitle: 'Good for stable facts',
+      note: 'memory לא אמור להחליף prompt ברור, אלא למנוע חזרה מיותרת על רקע קבוע.',
+      score: settings.memory?.enabled ? 74 : 84,
+      heroKicker: 'Project Memory',
+      heroTitle: settings.memory?.enabled ? 'זיכרון פרויקט כבר פעיל' : 'Project memory כבוי',
+      heroCopy: settings.memory?.enabled
+        ? 'המשך לשמור שם רק עובדות יציבות ולא בקשות רגעיות.'
+        : 'אם אתה מסביר שוב ושוב איפה קוד נמצא או איך הארכיטקטורה בנויה, memory יקטין את החזרה הזאת.',
+    },
+    {
+      id: 'edit',
+      title: 'Edit the ask instead of stacking more background',
+      kindLabel: 'Workflow guidance',
+      kindTone: 'guidance',
+      countedLabel: 'Good habit, not measured',
+      countedTone: 'guidance',
+      statusLabel: liveTurns >= 6 ? 'Relevant now' : 'Keep in mind',
+      statusTone: liveTurns >= 6 ? 'warn' : 'info',
+      copy: 'זה הטיפ מהמסמך של "תערכו, לא תערמו": כשאותה שאלה משנה כיוון, עדיף לנסח מחדש את הבקשה הנוכחית מאשר להוסיף עוד ועוד רקע סותר.',
+      action: 'Rewrite the current prompt before sending the next long follow-up',
+      actionSub: 'אם יש כמה נושאים שונים, עדיף /bundle או handoff מאשר שרשור מבולגן.',
+      whyTitle: 'Reduces noisy context',
+      note: 'CCSO לא יודע למדוד "עריכה במקום שרשור", אבל זה שומר על prompt קצר וברור יותר.',
+      score: liveTurns >= 6 ? 72 : 54,
+      heroKicker: 'Prompt Hygiene',
+      heroTitle: 'עדיף לנסח מחדש מאשר להיערם',
+      heroCopy: 'ככל שהסשן נמשך, הסיכון לפרומפטים ארוכים ומבולגנים עולה. עריכה מוקדמת חוסכת עומס בהמשך.',
+    },
+    {
+      id: 'platform-modes',
+      title: 'Use expensive modes only when they are truly needed',
+      kindLabel: 'Platform-specific tip',
+      kindTone: 'platform',
+      countedLabel: 'Not measured by CCSO',
+      countedTone: 'platform',
+      statusLabel: 'Cross-tool advice',
+      statusTone: 'info',
+      copy: 'בכלים אחרים לפעמים יש מצבים כמו extended thinking, web search או connectors. הם יכולים להיות מצוינים, אבל הם לא ברירת מחדל לכל משימה ולא נספרים כאן כחיסכון.',
+      action: 'Enable heavy modes only on tasks that actually need deeper reasoning or external retrieval',
+      actionSub: 'ב-CCSO עצמו העיקרון המקביל הוא לשמור על routing חכם ולהימנע מהפעלת פיצ׳רים lossy שלא צריך.',
+      whyTitle: 'Honest separation',
+      note: 'הטיפ הזה מגיע מהמסמך, אבל נשאר מסומן כאן כ-platform-specific כדי לא ליצור מצג שווא של מדידה.',
+      score: 46,
+      heroKicker: 'Platform Specific',
+      heroTitle: 'לא כל טיפ שייך למדידה המקומית',
+      heroCopy: 'יש הרגלים טובים שחלים על כלים אחרים, אבל הדשבורד הזה לא מערבב אותם עם savings של CCSO.',
+    },
+  ];
+
+  return items.sort((a, b) => b.score - a.score);
 }
 
 function formatChartUsd(value, compact = false) {
@@ -1979,12 +2524,15 @@ function getPlatformSavingsTone(mode = '') {
 
 // ── Features ──────────────────────────────────────────────────────────────────
 const FALLBACK_FEATURES = [
-  { id: 'model-routing', icon: '🧠', title: 'ניתוב מודל חכם', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'להשאיר פעיל', recommendationTone: 'recommended', metricKey: 'model-routing', desc: 'מעביר שאלות קלות ל-Haiku ומשימות מורכבות ל-Opus כדי לחסוך עלות בלי לקצר את הפרומפט עצמו.' },
-  { id: 'trim-log', icon: '✂️', title: 'קיצוץ לוגים ארוכים', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'זהיר אבל שימושי', recommendationTone: 'caution', metricKey: 'trim-log', desc: 'מחלץ שורות שגיאה ו-stack trace רלוונטיים, ושומר גם tail קצר במקום tail עיוור בלבד.' },
-  { id: 'translate', icon: '🌐', title: 'תרגום עברית → אנגלית', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'כבוי', enabled: false, recommendationLabel: 'כבוי כברירת מחדל', recommendationTone: 'optional', metricKey: 'translate', desc: 'זמין רק כ-opt-in כי תרגום עלול לשנות ניסוח ומשמעות.' },
-  { id: 'code-compress', icon: '📦', title: 'כיווץ קוד', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'כבוי', enabled: false, recommendationLabel: 'כבוי כברירת מחדל', recommendationTone: 'optional', metricKey: 'code-compress', desc: 'יכול לחסוך טוקנים, אבל גם למחוק comments ו-debug hints חשובים.' },
-  { id: 'cache', icon: '💾', title: 'מטמון תגובות', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'להשאיר פעיל', recommendationTone: 'recommended', metricKey: 'cache', desc: 'אותו prompt עם אותו model לא צריך להישלח שוב, גם אם יש הבדלי whitespace שמרניים בלבד.' },
-  { id: 'memory', icon: '🧩', title: 'זיכרון חוצה-סשן', type: 'manual', typeLabel: 'ידני', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'להשאיר פעיל לפי צורך', recommendationTone: 'manual', desc: 'מזריק רק עובדות רלוונטיות תחת תקציב טוקנים, במקום לדחוף את כל הזיכרון לכל פרומפט.' },
+  { id: 'model-routing', icon: '🧠', title: 'ניתוב מודל חכם', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'להשאיר פעיל', recommendationTone: 'recommended', metricKey: 'model-routing', dashboardCategory: 'measured-savings', measurementLabel: 'נמדד בדשבורד', measurementTone: 'measured', desc: 'מעביר שאלות קלות ל-Haiku ומשימות מורכבות ל-Opus כדי לחסוך עלות בלי לקצר את הפרומפט עצמו.' },
+  { id: 'trim-log', icon: '✂️', title: 'קיצוץ לוגים ארוכים', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'זהיר אבל שימושי', recommendationTone: 'caution', metricKey: 'trim-log', dashboardCategory: 'measured-savings', measurementLabel: 'נמדד בדשבורד', measurementTone: 'measured', desc: 'מחלץ שורות שגיאה ו-stack trace רלוונטיים, ושומר גם tail קצר במקום tail עיוור בלבד.' },
+  { id: 'translate', icon: '🌐', title: 'תרגום עברית → אנגלית', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'כבוי', enabled: false, recommendationLabel: 'כבוי כברירת מחדל', recommendationTone: 'optional', metricKey: 'translate', dashboardCategory: 'measured-savings', measurementLabel: 'נמדד רק אם הופעל', measurementTone: 'measured', desc: 'זמין רק כ-opt-in כי תרגום עלול לשנות ניסוח ומשמעות.' },
+  { id: 'code-compress', icon: '📦', title: 'כיווץ קוד', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'כבוי', enabled: false, recommendationLabel: 'כבוי כברירת מחדל', recommendationTone: 'optional', metricKey: 'code-compress', dashboardCategory: 'measured-savings', measurementLabel: 'נמדד רק אם הופעל', measurementTone: 'measured', desc: 'יכול לחסוך טוקנים, אבל גם למחוק comments ו-debug hints חשובים.' },
+  { id: 'cache', icon: '💾', title: 'מטמון תגובות', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'להשאיר פעיל', recommendationTone: 'recommended', metricKey: 'cache', dashboardCategory: 'measured-savings', measurementLabel: 'נמדד בדשבורד', measurementTone: 'measured', desc: 'אותו prompt עם אותו model לא צריך להישלח שוב, גם אם יש הבדלי whitespace שמרניים בלבד.' },
+  { id: 'memory', icon: '🧩', title: 'זיכרון חוצה-סשן', type: 'manual', typeLabel: 'ידני', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'להשאיר פעיל לפי צורך', recommendationTone: 'manual', dashboardCategory: 'estimated-impact', measurementLabel: 'משפר הקשר, לא נספר ישירות', measurementTone: 'estimated', desc: 'מזריק רק עובדות רלוונטיות תחת תקציב טוקנים, במקום לדחוף את כל הזיכרון לכל פרומפט.' },
+  { id: 'briefs', icon: '📚', title: 'Reusable File Briefs', type: 'manual', typeLabel: 'ידני', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'מומלץ לקבצים חוזרים', recommendationTone: 'manual', dashboardCategory: 'estimated-impact', measurementLabel: 'Brief reuse, לא נספר ישירות', measurementTone: 'estimated', desc: 'שומר brief קצר לקובץ או מסמך ומזריק אותו רק כשהקובץ מוזכר שוב.' },
+  { id: 'prompt-bundler', icon: '📦', title: 'Prompt Bundler', type: 'manual', typeLabel: 'ידני', stateLabel: 'זמין', enabled: true, recommendationLabel: 'מומלץ כשיש כמה סעיפים', recommendationTone: 'manual', dashboardCategory: 'workflow-quality', measurementLabel: 'כלי workflow ידני', measurementTone: 'advice', desc: 'הפקודה `/bundle` מאגדת כמה משימות לבקשה אחת מסודרת.' },
+  { id: 'session-reset-advisor', icon: '🧭', title: 'Session Reset Advisor', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'להשאיר פעיל', recommendationTone: 'recommended', dashboardCategory: 'quota-hygiene', measurementLabel: 'עצת reset, לא חיסכון ישיר', measurementTone: 'quota', desc: 'ממליץ על handoff או reset כשהסשן מתחיל להתנפח.' },
 ];
 
 // Maps feature keys from log to feature titles
@@ -2030,7 +2578,33 @@ async function renderFeatures() {
 
   renderOptimizerSnapshot(optimizerSettings, {}, 'featureProfileSnapshot');
 
-  document.getElementById('featuresGrid').innerHTML = featureCatalog.map(f => {
+  const groups = {
+    'measured-savings': [],
+    'estimated-impact': [],
+    'workflow-quality': [],
+    'quota-hygiene': [],
+  };
+
+  for (const feature of featureCatalog) {
+    const key = groups[feature.dashboardCategory] ? feature.dashboardCategory : 'workflow-quality';
+    groups[key].push(feature);
+  }
+
+  renderFeatureGroup('featuresMeasuredGrid', groups['measured-savings'], featureSavings, optimizerSettings, "אין כרגע פיצ'רים מדידים להצגה.");
+  renderFeatureGroup('featuresEstimatedGrid', groups['estimated-impact'], featureSavings, optimizerSettings, "אין כרגע פיצ'רי reuse להצגה.");
+  renderFeatureGroup('featuresWorkflowGrid', groups['workflow-quality'], featureSavings, optimizerSettings, "אין כרגע פיצ'רי workflow להצגה.");
+  renderFeatureGroup('featuresQuotaGrid', groups['quota-hygiene'], featureSavings, optimizerSettings, "אין כרגע פיצ'רי session hygiene להצגה.");
+}
+
+function renderFeatureGroup(targetId, features, featureSavings, optimizerSettings, emptyMessage) {
+  const root = document.getElementById(targetId);
+  if (!root) return;
+  if (!features.length) {
+    root.innerHTML = `<div class="platform-empty" style="grid-column:1/-1">${emptyMessage}</div>`;
+    return;
+  }
+
+  root.innerHTML = features.map((f) => {
     const stats = f.metricKey ? (featureSavings[f.metricKey] || {}) : null;
     const totalTokens = stats?.totalTokens || 0;
     const usd = stats?.usd || 0;
@@ -2047,8 +2621,8 @@ async function renderFeatures() {
     const recommendationBadge = f.recommendationLabel
       ? `<span class="f-badge f-${f.recommendationTone || 'manual'}">${f.recommendationLabel}</span>`
       : '';
-    const measuredBadge = f.metricKey
-      ? '<span class="f-badge f-measured">נמדד בדשבורד</span>'
+    const measurementBadge = f.measurementLabel
+      ? `<span class="f-badge f-${f.measurementTone || 'advice'}">${f.measurementLabel}</span>`
       : '';
     return `
     <div class="feature-item">
@@ -2060,7 +2634,7 @@ async function renderFeatures() {
           <div class="f-badge ${f.type === 'auto' ? 'f-auto' : 'f-manual'}">${f.typeLabel || (f.type === 'auto' ? 'אוטומטי' : 'ידני')}</div>
           ${stateBadge}
           ${recommendationBadge}
-          ${measuredBadge}
+          ${measurementBadge}
           ${savingsBadge}
           ${tokenBadge}
         </div>
@@ -2084,6 +2658,24 @@ function getFeatureRuntimeChips(feature, settings = {}) {
         { label: settings.memory?.enabled ? `Max ${settings.memory.maxFacts} facts` : 'disabled', tone: settings.memory?.enabled ? 'info' : 'bad' },
         { label: 'Relevant only', tone: 'good' },
         { label: 'לא נספר כחיסכון ישיר', tone: 'warn' },
+      ];
+    case 'briefs':
+      return [
+        { label: settings.briefs?.enabled ? `Budget ${fmt(settings.briefs.tokenBudget)} tokens` : 'briefs off', tone: settings.briefs?.enabled ? 'info' : 'bad' },
+        { label: 'Saved per file', tone: 'good' },
+        { label: 'מופעל רק כשיש brief שמור והקובץ מוזכר', tone: 'info' },
+      ];
+    case 'session-reset-advisor':
+      return [
+        { label: settings.resetAdvisor?.enabled ? `${settings.resetAdvisor.turns} turns` : 'advisor off', tone: settings.resetAdvisor?.enabled ? 'good' : 'bad' },
+        { label: settings.resetAdvisor?.enabled ? `${settings.resetAdvisor.minutes} min` : 'disabled', tone: settings.resetAdvisor?.enabled ? 'info' : 'bad' },
+        { label: 'Session hygiene בלבד', tone: 'warn' },
+      ];
+    case 'prompt-bundler':
+      return [
+        { label: 'פקודה: /bundle', tone: 'good' },
+        { label: 'Manual, not auto-rewritten', tone: 'info' },
+        { label: 'לא נספר כחיסכון קשיח', tone: 'warn' },
       ];
     case 'trim-log':
       return [

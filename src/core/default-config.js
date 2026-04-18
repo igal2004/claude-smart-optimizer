@@ -1,4 +1,4 @@
-export const CONFIG_SCHEMA_VERSION = 2;
+export const CONFIG_SCHEMA_VERSION = 3;
 
 const BASE_DEFAULT_CONFIG = {
   configSchemaVersion: CONFIG_SCHEMA_VERSION,
@@ -22,12 +22,18 @@ const BASE_DEFAULT_CONFIG = {
   smartRouting: true,
   promptCache: true,
   cacheTTLHours: 24,
+  briefsEnabled: true,
+  briefTokenBudget: 220,
 
   // Memory & history
   memoryEnabled: true,
   memoryTokenBudget: 180,
   memoryMaxFacts: 6,
   promptHistory: true,
+  resetAdvisor: true,
+  resetAdvisorTurns: 15,
+  resetAdvisorMinutes: 90,
+  resetAdvisorTokenThreshold: 12000,
 
   // Handoff triggers
   costThreshold: 0.80,

@@ -9,6 +9,7 @@
  *   ccso                        — start the Smart REPL (Claude Code backend)
  *   ccso --init                 — Smart Init wizard (CLAUDE.md, AGENTS.md, .claudeignore)
  *   ccso --dashboard            — open the visual dashboard in browser
+ *   ccso --share-dashboard      — expose the live local dashboard via a public tunnel
  *   ccso --config               — interactive settings menu
  *   ccso --status               — show current session status
  *   ccso --uninstall            — remove CCSO from this machine
@@ -51,12 +52,13 @@ function showHelp() {
   console.log(`  ${c.green('ccso')}                   פתח Smart REPL (Claude Code backend)`);
   console.log(`  ${c.green('ccso --init')}            אשף הגדרת פרויקט (CLAUDE.md + .claudeignore)`);
   console.log(`  ${c.green('ccso --dashboard')}       פתח דשבורד ויזואלי בדפדפן`);
+  console.log(`  ${c.green('ccso --share-dashboard')} שתף את הדשבורד החי דרך לינק ציבורי`);
   console.log(`  ${c.green('ccso --config')}          תפריט הגדרות`);
   console.log(`  ${c.green('ccso --status')}          סטטוס סשן נוכחי`);
   console.log(`  ${c.green('ccso --uninstall')}       הסר CCSO`);
   console.log('');
-  console.log(c.bold('  חיסכון בכל הפלטפורמות:'));
-  console.log(`  ${c.green('ccso inject')}            הזרק כללי פרויקט ל-Claude/Cursor/Windsurf/Copilot/Gemini/Firebase`);
+  console.log(c.bold('  אינטגרציות פרויקט לכלים נתמכים:'));
+  console.log(`  ${c.green('ccso inject')}            כתוב קובצי חוקים/הוראות ל-Claude/Cursor/Windsurf/Copilot/Gemini/Firebase`);
   console.log(`  ${c.green('ccso inject /path')}      הזרק לתיקייה ספציפית`);
   console.log(`  ${c.green('ccso eject')}             הסר כללי CCSO מהפרויקט`);
   console.log('');
@@ -146,6 +148,12 @@ if (cmd === '--dashboard') {
   // Keep the parent alive — the child.on('close') handler will exit when server stops.
 }
 
+if (cmd === '--share-dashboard') {
+  const { shareDashboard } = await import(path.join(__dirname, '..', 'src', 'dashboard', 'share.js'));
+  await shareDashboard();
+  await new Promise(() => {});
+}
+
 if (cmd === 'mcp') {
   await import(path.join(__dirname, 'mcp.js'));
   process.exit(0);
@@ -194,7 +202,8 @@ if (cmd === 'inject' || cmd === '--inject') {
     console.log(`  ${icon}  ${c.green(r.file.padEnd(42))} ${c.dim(r.note)}`);
   }
   console.log('');
-  console.log(c.bold('  כל כלי AI בפרויקט זה יעבוד עם כללי החיסכון אוטומטית.'));
+  console.log(c.bold('  קובצי הפרויקט הנתמכים עודכנו לכלים ש-CCSO יודע לכתוב עבורם.'));
+  console.log(c.dim('  זה לא נותן ל-CCSO שליטה או מדידה מלאה בתוך כל IDE.\n'));
   console.log(c.dim('  להסרה: ccso eject\n'));
   process.exit(0);
 }

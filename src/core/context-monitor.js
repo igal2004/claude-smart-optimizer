@@ -49,6 +49,7 @@ export class ContextMonitor {
     this.methodology = getPricingMethodology(this.backend);
     this.sessionCost = 0;
     this.commandCount = 0;
+    this.turnCount = 0;
     this.estimatedInputTokens = 0;
     this.estimatedOutputTokens = 0;
     this.tokensAvoided = 0;
@@ -67,6 +68,11 @@ export class ContextMonitor {
     this.costThreshold = config.get('costThreshold') || 0.80;
     this.commandThreshold = config.get('commandThreshold') || 25;
     this.timeThresholdMs = (config.get('timeThresholdHours') || 2) * 60 * 60 * 1000;
+    this.resetAdvisorEnabled = config.get('resetAdvisor') !== false;
+    this.resetAdvisorTurns = Number(config.get('resetAdvisorTurns')) || 15;
+    this.resetAdvisorMinutes = Number(config.get('resetAdvisorMinutes')) || 90;
+    this.resetAdvisorTokenThreshold = Number(config.get('resetAdvisorTokenThreshold')) || 12000;
+    this.lastResetAdviceLevel = 'ok';
   }
 
   /**
@@ -86,6 +92,7 @@ export class ContextMonitor {
     cacheHit = false,
   } = {}) {
     this.currentModel = normalizeModelFamily(model);
+    this.turnCount++;
 
     if (!cacheHit) {
       this.estimatedInputTokens += promptTokens;
@@ -171,6 +178,62 @@ export class ContextMonitor {
     this._saveLive();
   }
 
+  getResetAdvice() {
+    if (!this.resetAdvisorEnabled) {
+      return {
+        enabled: false,
+        level: 'disabled',
+        recommended: false,
+        reasons: [],
+        label: 'כבוי',
+        suggestion: '',
+      };
+    }
+
+    const elapsedMinutes = Math.round((Date.now() - this.startTime) / 60000);
+    const totalTokens = this.estimatedInputTokens + this.estimatedOutputTokens;
+    const reasons = [];
+
+    if (this.turnCount >= this.resetAdvisorTurns) reasons.push(`${this.turnCount} turns באותו סשן`);
+    if (elapsedMinutes >= this.resetAdvisorMinutes) reasons.push(`${elapsedMinutes} דקות רצופות`);
+    if (totalTokens >= this.resetAdvisorTokenThreshold) reasons.push(`${totalTokens.toLocaleString()} טוקנים מצטברים`);
+
+    const urgent = (
+      this.turnCount >= this.resetAdvisorTurns + 7 ||
+      elapsedMinutes >= this.resetAdvisorMinutes + 45 ||
+      totalTokens >= this.resetAdvisorTokenThreshold * 2
+    );
+
+    if (!reasons.length) {
+      return {
+        enabled: true,
+        level: 'ok',
+        recommended: false,
+        reasons: [],
+        label: 'תקין',
+        suggestion: 'אין כרגע צורך ב-reset או handoff.',
+      };
+    }
+
+    return {
+      enabled: true,
+      level: urgent ? 'reset-soon' : 'consider',
+      recommended: true,
+      reasons,
+      label: urgent ? 'מומלץ reset' : 'כדאי לשקול reset',
+      suggestion: urgent
+        ? 'כדאי לבצע /handoff או לפתוח סשן חדש לפני שהקונטקסט יתנפח עוד.'
+        : 'אפשר להמשיך, אבל /handoff עכשיו כנראה ישמור על הקשר נקי יותר.',
+    };
+  }
+
+  consumeResetAdviceNotice() {
+    const advice = this.getResetAdvice();
+    if (advice.level === this.lastResetAdviceLevel) return null;
+    this.lastResetAdviceLevel = advice.level;
+    return advice.recommended ? advice : null;
+  }
+
   /** Write current session state to a live file so the dashboard can read it in real time */
   _saveLive() {
     if (!this.liveWritesEnabled) return;
@@ -182,6 +245,7 @@ export class ContextMonitor {
         backend: this.backend,
         cost: roundUsd(this.sessionCost),
         commands: this.commandCount,
+        turns: this.turnCount,
         tokensSaved: this.tokensAvoided,
         dollarsSaved: roundUsd(this.netSavingsUsd),
         model: this.currentModel,
@@ -208,6 +272,7 @@ export class ContextMonitor {
           ]),
         ),
         methodology: this.methodology,
+        resetAdvice: this.getResetAdvice(),
       };
       fs.writeFileSync(LIVE_FILE, JSON.stringify(live));
     } catch {
@@ -242,6 +307,7 @@ export class ContextMonitor {
       cost: this.sessionCost.toFixed(4),
       costThreshold: this.costThreshold,
       commands: this.commandCount,
+      turns: this.turnCount,
       commandThreshold: this.commandThreshold,
       elapsedMinutes: elapsed,
       usedPercent: usedPct,
@@ -270,6 +336,7 @@ export class ContextMonitor {
         ]),
       ),
       methodology: this.methodology,
+      resetAdvice: this.getResetAdvice(),
     };
   }
 
@@ -281,6 +348,7 @@ export class ContextMonitor {
       backend: this.backend,
       cost: roundUsd(this.sessionCost),
       commands: this.commandCount,
+      turns: this.turnCount,
       tokensSaved: this.tokensAvoided,
       dollarsSaved: roundUsd(this.netSavingsUsd),
       model: this.currentModel,
@@ -308,6 +376,7 @@ export class ContextMonitor {
         ]),
       ),
       methodology: this.methodology,
+      resetAdvice: this.getResetAdvice(),
     };
   }
 
@@ -356,12 +425,14 @@ export class ContextMonitor {
   reset() {
     this.sessionCost = 0;
     this.commandCount = 0;
+    this.turnCount = 0;
     this.estimatedInputTokens = 0;
     this.estimatedOutputTokens = 0;
     this.tokensAvoided = 0;
     this.netSavingsUsd = 0;
     this.startTime = Date.now();
     this.handoffOccurred = false;
+    this.lastResetAdviceLevel = 'ok';
     this.featureSavings = createFeatureSavings();
     this.savingsBreakdownUsd = {
       promptReduction: 0,

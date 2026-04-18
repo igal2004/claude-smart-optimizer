@@ -29,6 +29,12 @@ function upgradeConfigProfile(config, rawConfig = null) {
     responseLengthHints: false,
     truncateLargePastes: false,
     dedupeLongInput: false,
+    briefsEnabled: true,
+    briefTokenBudget: 220,
+    resetAdvisor: true,
+    resetAdvisorTurns: 15,
+    resetAdvisorMinutes: 90,
+    resetAdvisorTokenThreshold: 12000,
   };
 
   if (rawConfig?.translate === true) updates.translate = false;
