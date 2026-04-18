@@ -7,20 +7,22 @@
  */
 
 import * as fs   from 'fs';
-import * as path from 'path';
-import * as os   from 'os';
+import { getCCSOPath } from './storage-paths.js';
+import { getConfigValue } from './default-config.js';
 
-const HISTORY_FILE = path.join(os.homedir(), '.config', 'claude-smart-optimizer', 'prompt-history.jsonl');
+const HISTORY_FILE = getCCSOPath('prompt-history.jsonl');
 const MAX_ENTRIES  = 500;
 
 export class PromptHistory {
-  constructor() {
+  constructor(config = null) {
     this._cache  = null;
     this._cursor = -1; // for up/down navigation
+    this.enabled = config ? Boolean(getConfigValue(config, 'promptHistory')) : true;
   }
 
   /** Save a prompt (ignores built-in /commands) */
   add(prompt) {
+    if (!this.enabled) return;
     if (!prompt?.trim() || prompt.startsWith('/')) return;
     const entry = {
       ts:  new Date().toISOString(),

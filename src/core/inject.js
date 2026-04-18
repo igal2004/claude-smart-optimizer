@@ -9,7 +9,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
+import { getCCSOPath } from './storage-paths.js';
 
 const RULES = `# CCSO Smart Rules v3.0
 # Generated automatically — do not edit this section manually
@@ -79,7 +79,7 @@ const MEMORY_HEADER = `\n## זיכרון פרויקט (CCSO)\n`;
 function readProjectMemory(projectDir) {
   try {
     const hash = Buffer.from(projectDir).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
-    const memFile = path.join(os.homedir(), '.config', 'claude-smart-optimizer', 'memory', `${hash}.md`);
+    const memFile = getCCSOPath('memory', `${hash}.md`);
     if (fs.existsSync(memFile)) {
       return fs.readFileSync(memFile, 'utf8').trim();
     }

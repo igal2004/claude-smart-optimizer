@@ -16,6 +16,8 @@ import fetch from 'node-fetch';
 import * as path from 'path';
 import * as fs   from 'fs';
 import { execSync } from 'child_process';
+import { countTokens, sumSavedTokens } from './token-utils.js';
+import { getConfigValue } from './default-config.js';
 
 const HEBREW_REGEX = /[\u0590-\u05FF]/;
 
@@ -42,23 +44,37 @@ const SECRET_PATTERNS = [
   { name: 'Secret',            regex: /secret\s*[:=]\s*["'][^"']{6,}["']/gi },
 ];
 
+const LOG_SIGNAL_REGEX = /(error|exception|fatal|traceback|panic|failed|failure|uncaught|unhandled|typeerror|referenceerror|syntaxerror|500\b|segmentation fault)/i;
+const LOG_STACK_REGEX = /^\s*(at\s+|File\s+".*", line \d+|Caused by:|Traceback)/;
+const LOG_LINE_REGEX = /^(\[.*\]\s+)?(TRACE|DEBUG|INFO|WARN|WARNING|ERROR|FATAL)\b/i;
+
 export class Interceptor {
   constructor(config) {
     this.config               = config;
-    this.translateEnabled     = config.get('translate') !== false;
-    this.stripPoliteness      = config.get('stripPoliteness') !== false;
-    this.resolvePathsEnabled  = config.get('resolvePaths') !== false;
-    this.trimLogsEnabled      = config.get('trimLogs') !== false;
-    this.compressCodeEnabled  = config.get('codeCompression') !== false;
-    this.secretScanEnabled    = config.get('secretScanner') !== false;
-    this.gitContextEnabled    = config.get('gitContext') !== false;
+    this.translateEnabled     = Boolean(getConfigValue(config, 'translate'));
+    this.stripPoliteness      = Boolean(getConfigValue(config, 'stripPoliteness'));
+    this.resolvePathsEnabled  = Boolean(getConfigValue(config, 'resolvePaths'));
+    this.trimLogsEnabled      = Boolean(getConfigValue(config, 'trimLogs'));
+    this.truncateLargeEnabled = Boolean(getConfigValue(config, 'truncateLargePastes'));
+    this.dedupeEnabled        = Boolean(getConfigValue(config, 'dedupeLongInput'));
+    this.compressCodeEnabled  = Boolean(getConfigValue(config, 'codeCompression'));
+    this.responseHintsEnabled = Boolean(getConfigValue(config, 'responseLengthHints'));
+    this.secretScanEnabled    = Boolean(getConfigValue(config, 'secretScanner'));
+    this.gitContextEnabled    = Boolean(getConfigValue(config, 'gitContext'));
   }
 
   async processWithStats(input) {
-    const { text, warnings, savings } = await this.process(input);
-    // Sum only savings-steps (not git context which adds tokens)
-    const tokensSaved = savings.reduce((s, x) => s + x.saved, 0);
-    return { text, tokensSaved, warnings, savings };
+    const { text, warnings, savings, actions } = await this.process(input);
+    return {
+      text,
+      warnings,
+      savings,
+      actions,
+      inputTokensBefore: countTokens(input),
+      inputTokensAfter: countTokens(text),
+      inputTokensSaved: sumSavedTokens(savings, 'input'),
+      estimatedOutputTokensSaved: sumSavedTokens(savings, 'output'),
+    };
   }
 
   async process(input) {
@@ -74,23 +90,27 @@ export class Interceptor {
       const before = snap();
       result = this._trimLog(result);
       const saved = before - snap();
-      if (saved > 0) { savings.push({ step: 'trim-log', saved }); actions.push(`✂️  לוג קוצץ (חסכנו ~${saved} טוקנים)`); }
+      if (saved > 0) { savings.push({ step: 'trim-log', kind: 'input', saved }); actions.push(`✂️  לוג קוצץ (חסכנו ~${saved} טוקנים)`); }
     }
 
     // 2. Truncate large inline file content (>300 lines pasted)
-    const truncated = this._truncateLargeContent(result);
-    if (truncated !== result) {
-      const saved = snap() - countTokens(truncated);
-      result = truncated;
-      if (saved > 0) { savings.push({ step: 'truncate', saved }); actions.push(`📄 קובץ גדול קוצץ (חסכנו ~${saved} טוקנים)`); }
+    if (this.truncateLargeEnabled) {
+      const truncated = this._truncateLargeContent(result);
+      if (truncated !== result) {
+        const saved = snap() - countTokens(truncated);
+        result = truncated;
+        if (saved > 0) { savings.push({ step: 'truncate', kind: 'input', saved }); actions.push(`📄 קובץ גדול קוצץ (חסכנו ~${saved} טוקנים)`); }
+      }
     }
 
     // 3. Remove duplicate sentences/lines
-    const deduped = this._deduplicateContent(result);
-    if (deduped !== result) {
-      const saved = snap() - countTokens(deduped);
-      result = deduped;
-      if (saved > 0) { savings.push({ step: 'dedupe', saved }); actions.push(`🔁 תוכן כפול הוסר (חסכנו ~${saved} טוקנים)`); }
+    if (this.dedupeEnabled) {
+      const deduped = this._deduplicateContent(result);
+      if (deduped !== result) {
+        const saved = snap() - countTokens(deduped);
+        result = deduped;
+        if (saved > 0) { savings.push({ step: 'dedupe', kind: 'input', saved }); actions.push(`🔁 תוכן כפול הוסר (חסכנו ~${saved} טוקנים)`); }
+      }
     }
 
     // 4. Translate Hebrew → English
@@ -100,7 +120,7 @@ export class Interceptor {
       if (translated && translated !== result) {
         result = translated;
         const saved = before - snap();
-        if (saved > 0) savings.push({ step: 'translate', saved });
+        if (saved > 0) savings.push({ step: 'translate', kind: 'input', saved });
         actions.push(`🔄 תורגם עברית → אנגלית${saved > 0 ? ` (חסכנו ~${saved} טוקנים)` : ''}`);
       }
     }
@@ -112,7 +132,7 @@ export class Interceptor {
       if (stripped !== result) {
         result = stripped;
         const saved = before - snap();
-        if (saved > 0) { savings.push({ step: 'politeness', saved }); actions.push(`🧹 נימוסים הוסרו (חסכנו ~${saved} טוקנים)`); }
+        if (saved > 0) { savings.push({ step: 'politeness', kind: 'input', saved }); actions.push(`🧹 נימוסים הוסרו (חסכנו ~${saved} טוקנים)`); }
       }
     }
 
@@ -127,18 +147,20 @@ export class Interceptor {
       const { text: compressed, saved: charsSaved } = this._compressCode(result);
       if (charsSaved > 5) {
         const toksSaved = Math.ceil(charsSaved / 4);
-        savings.push({ step: 'code-compress', saved: toksSaved });
+        savings.push({ step: 'code-compress', kind: 'input', saved: toksSaved });
         actions.push(`⚡ קוד דוחס (חסכנו ~${toksSaved} טוקנים)`);
         result = compressed;
       }
     }
 
     // 8. Add response-length hint for simple queries (saves OUTPUT tokens)
-    const lengthHint = this._buildLengthHint(result);
-    if (lengthHint) {
-      result = result + lengthHint.suffix;
-      savings.push({ step: 'output-hint', saved: lengthHint.estimatedSaved, isOutput: true });
-      actions.push(`📏 הוגבל אורך תגובה (חיסכון משוער ~${lengthHint.estimatedSaved} טוקנים פלט)`);
+    if (this.responseHintsEnabled) {
+      const lengthHint = this._buildLengthHint(result);
+      if (lengthHint) {
+        result = result + lengthHint.suffix;
+        savings.push({ step: 'output-hint', kind: 'output', saved: lengthHint.estimatedSaved });
+        actions.push(`📏 הוגבל אורך תגובה (חיסכון משוער ~${lengthHint.estimatedSaved} טוקנים פלט)`);
+      }
     }
 
     // 9. Scan for secrets
@@ -156,7 +178,7 @@ export class Interceptor {
     if (actions.length > 0) console.log('\n' + actions.map(a => `  [CCSO] ${a}`).join('\n'));
     for (const w of warnings) console.log(`\n  \x1b[33m${w}\x1b[0m`);
 
-    return { text: result, warnings, savings };
+    return { text: result, warnings, savings, actions };
   }
 
   // ── New: Truncate large inline content ────────────────────────────────────────
@@ -219,6 +241,11 @@ export class Interceptor {
     }
   }
 
+  async translate(text) {
+    if (!this.translateEnabled || !HEBREW_REGEX.test(text)) return text;
+    return this._translate(text);
+  }
+
   // ── Politeness ──────────────────────────────────────────────────────────────
 
   _stripPoliteWords(text) {
@@ -231,12 +258,100 @@ export class Interceptor {
 
   _looksLikeLog(text) {
     const lines = text.split('\n');
-    return lines.length > 60 && (text.includes('Error') || text.includes('Warning') || text.includes('at '));
+    return lines.length > 60 && /(error|warning|exception|traceback|fatal|\bat\s)/i.test(text);
   }
 
   _trimLog(text) {
     const lines = text.split('\n');
-    return `[Log trimmed — showing last 50 lines]\n${lines.slice(-50).join('\n')}`;
+    const preamble = [];
+    let logStart = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      if (this._isLogLikeLine(lines[i])) {
+        logStart = i;
+        break;
+      }
+      if (lines[i].trim()) preamble.push(lines[i]);
+    }
+
+    const logLines = lines.slice(logStart);
+    const selectedIndexes = new Set();
+    const interestingIndexes = [];
+
+    for (let i = 0; i < logLines.length; i++) {
+      if (this._isInterestingLogLine(logLines[i])) {
+        interestingIndexes.push(i);
+      }
+    }
+
+    if (interestingIndexes.length > 0) {
+      for (const index of interestingIndexes.slice(-8)) {
+        this._addLogWindow(selectedIndexes, index, logLines.length, 2, 4);
+
+        for (let offset = 1; offset <= 6; offset++) {
+          const followIndex = index + offset;
+          if (followIndex >= logLines.length) break;
+          const line = logLines[followIndex];
+          if (!line.trim()) break;
+          if (LOG_STACK_REGEX.test(line) || this._isInterestingLogLine(line)) {
+            selectedIndexes.add(followIndex);
+            continue;
+          }
+          if (LOG_LINE_REGEX.test(line)) break;
+        }
+      }
+    } else {
+      for (let i = Math.max(0, logLines.length - 50); i < logLines.length; i++) {
+        selectedIndexes.add(i);
+      }
+    }
+
+    for (let i = Math.max(0, logLines.length - 15); i < logLines.length; i++) {
+      selectedIndexes.add(i);
+    }
+
+    const selectedLines = [];
+    let previousIndex = null;
+    for (const index of [...selectedIndexes].sort((a, b) => a - b)) {
+      if (previousIndex !== null && index - previousIndex > 1) {
+        selectedLines.push('... [CCSO omitted unrelated log lines] ...');
+      }
+      selectedLines.push(logLines[index]);
+      previousIndex = index;
+    }
+
+    const parts = [];
+    if (preamble.length > 0) {
+      parts.push(preamble.slice(0, 3).join('\n'));
+    }
+
+    const header = interestingIndexes.length > 0
+      ? `[Log trimmed — focused on ${interestingIndexes.length} error/signature block(s) plus recent tail]`
+      : '[Log trimmed — showing most recent log tail]';
+
+    parts.push(header);
+    parts.push(selectedLines.join('\n'));
+
+    return parts.filter(Boolean).join('\n');
+  }
+
+  _isLogLikeLine(line = '') {
+    return LOG_LINE_REGEX.test(line)
+      || /^\d{4}-\d{2}-\d{2}/.test(line)
+      || /^\[[0-9]{4}-[0-9]{2}-[0-9]{2}/.test(line)
+      || LOG_STACK_REGEX.test(line);
+  }
+
+  _isInterestingLogLine(line = '') {
+    return LOG_SIGNAL_REGEX.test(line) || LOG_STACK_REGEX.test(line);
+  }
+
+  _addLogWindow(indexSet, center, total, before = 2, after = 4) {
+    const start = Math.max(0, center - before);
+    const end = Math.min(total - 1, center + after);
+    for (let i = start; i <= end; i++) {
+      indexSet.add(i);
+    }
   }
 
   // ── Path resolution ──────────────────────────────────────────────────────────
@@ -358,21 +473,4 @@ Recent commits: ${logLine || 'none'}${diff}
       return null; // not a git repo
     }
   }
-}
-
-/**
- * Count approximate tokens in a string.
- * Hebrew/Arabic/CJK ≈ 2 tokens/char, ASCII ≈ 0.25 tokens/char.
- */
-function countTokens(str) {
-  let count = 0;
-  for (const ch of str) {
-    const cp = ch.codePointAt(0);
-    if (cp >= 0x0590 && cp <= 0x05FF) count += 2;      // Hebrew
-    else if (cp >= 0x0600 && cp <= 0x06FF) count += 2;  // Arabic
-    else if (cp >= 0x4E00 && cp <= 0x9FFF) count += 2;  // CJK
-    else if (cp > 127) count += 1.5;                    // Other non-ASCII
-    else count += 0.25;                                  // ASCII
-  }
-  return Math.ceil(count);
 }

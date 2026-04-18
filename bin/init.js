@@ -3,7 +3,7 @@
 /**
  * CCSO Smart Init Wizard
  * Generates CLAUDE.md (local + global) and .claudeignore automatically.
- * Run: cc --init
+ * Run: ccso --init
  */
 
 import * as fs from 'fs';

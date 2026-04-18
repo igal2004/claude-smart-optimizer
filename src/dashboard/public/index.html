@@ -4,39 +4,88 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CCSO v3.0 — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:       #0d1117;
-      --surface:  #161b22;
-      --border:   #30363d;
-      --text:     #e6edf3;
-      --muted:    #7d8590;
-      --green:    #3fb950;
-      --blue:     #58a6ff;
-      --yellow:   #d29922;
-      --red:      #f85149;
-      --purple:   #bc8cff;
-      --cyan:     #39d353;
+      color-scheme: dark;
+      --bg: #07111f;
+      --bg-soft: #0b1628;
+      --surface: rgba(12, 21, 36, 0.78);
+      --surface-strong: rgba(15, 25, 43, 0.94);
+      --surface-soft: rgba(16, 27, 46, 0.66);
+      --surface-ink: rgba(9, 16, 29, 0.86);
+      --border: rgba(148, 175, 219, 0.14);
+      --border-strong: rgba(122, 187, 255, 0.3);
+      --text: #eff7ff;
+      --text-soft: #d8e7f8;
+      --muted: #92a6c4;
+      --green: #44d6a8;
+      --blue: #7ed0ff;
+      --blue-strong: #49a8ff;
+      --yellow: #f1c96b;
+      --red: #ff8d95;
+      --purple: #c2a2ff;
+      --cyan: #60e4da;
+      --shadow-lg: 0 28px 80px rgba(0, 0, 0, 0.34);
+      --shadow-md: 0 18px 48px rgba(0, 0, 0, 0.22);
+      --radius-xl: 26px;
+      --radius-lg: 20px;
+      --radius-md: 16px;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'IBM Plex Sans Hebrew', 'Sora', sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      background-image:
+        radial-gradient(circle at 14% 18%, rgba(73, 168, 255, 0.18), transparent 26%),
+        radial-gradient(circle at 85% 12%, rgba(68, 214, 168, 0.12), transparent 22%),
+        radial-gradient(circle at 78% 74%, rgba(194, 162, 255, 0.12), transparent 20%),
+        linear-gradient(180deg, #08111f 0%, #07101b 52%, #060d17 100%);
+      position: relative;
+      overflow-x: hidden;
+    }
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      inset: auto;
+      pointer-events: none;
+      z-index: 0;
+      filter: blur(50px);
+      opacity: 0.55;
+    }
+    body::before {
+      width: 320px;
+      height: 320px;
+      top: -80px;
+      left: -70px;
+      background: rgba(73, 168, 255, 0.12);
+    }
+    body::after {
+      width: 360px;
+      height: 360px;
+      bottom: -120px;
+      right: 12%;
+      background: rgba(68, 214, 168, 0.1);
     }
 
     /* ── Sidebar ── */
-    .layout { display: flex; min-height: 100vh; }
+    .layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
 
     .sidebar {
-      width: 220px;
-      background: var(--surface);
+      width: 248px;
+      background: linear-gradient(180deg, rgba(14, 24, 41, 0.92), rgba(10, 18, 31, 0.86));
       border-left: 1px solid var(--border);
-      padding: 20px 0;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      padding: 26px 0 20px;
       display: flex;
       flex-direction: column;
       position: fixed;
@@ -44,92 +93,205 @@
       top: 0;
       bottom: 0;
       z-index: 10;
+      box-shadow: inset 1px 0 0 rgba(255,255,255,0.02), var(--shadow-md);
     }
 
     .logo {
-      padding: 0 20px 20px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 12px;
+      padding: 0 22px 22px;
+      border-bottom: 1px solid rgba(148, 175, 219, 0.12);
+      margin-bottom: 18px;
     }
-    .logo h1 { font-size: 18px; font-weight: 700; color: var(--blue); }
-    .logo .ver { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .logo h1 {
+      font-family: 'Sora', 'IBM Plex Sans Hebrew', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.04em;
+    }
+    .logo .ver {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
 
     .nav-item {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 20px;
-      font-size: 14px;
+      padding: 12px 16px;
+      margin: 0 14px 8px;
+      font-size: 13px;
+      font-weight: 500;
       color: var(--muted);
       cursor: pointer;
-      border-radius: 0;
-      transition: background 0.15s, color 0.15s;
+      border-radius: 14px;
+      transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
       text-decoration: none;
+      border: 1px solid transparent;
     }
-    .nav-item:hover { background: #21262d; color: var(--text); }
-    .nav-item.active { color: var(--blue); background: #1f2d3d; border-right: 2px solid var(--blue); }
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      border-color: rgba(126, 208, 255, 0.14);
+      transform: translateX(-2px);
+    }
+    .nav-item.active {
+      color: var(--text);
+      background: linear-gradient(135deg, rgba(73, 168, 255, 0.18), rgba(96, 228, 218, 0.12));
+      border-color: rgba(126, 208, 255, 0.24);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 14px 30px rgba(31, 78, 130, 0.16);
+    }
     .nav-icon { font-size: 16px; }
 
     .sidebar-footer {
       margin-top: auto;
-      padding: 16px 20px;
-      border-top: 1px solid var(--border);
+      padding: 18px 22px 0;
+      border-top: 1px solid rgba(148, 175, 219, 0.12);
       font-size: 11px;
       color: var(--muted);
+      line-height: 1.7;
     }
 
     /* ── Main ── */
     .main {
-      margin-right: 220px;
+      margin-right: 248px;
       flex: 1;
-      padding: 28px;
+      padding: 34px 34px 46px;
       overflow-y: auto;
     }
 
     .page { display: none; }
-    .page.active { display: block; }
+    .page.active {
+      display: block;
+      animation: fade-up 0.45s ease;
+    }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
     .page-title {
-      font-size: 20px;
+      font-family: 'Sora', 'IBM Plex Sans Hebrew', sans-serif;
+      font-size: clamp(1.85rem, 2.8vw, 2.5rem);
       font-weight: 700;
       color: var(--text);
-      margin-bottom: 6px;
+      letter-spacing: -0.05em;
+      margin-bottom: 10px;
     }
     .page-sub {
-      font-size: 13px;
+      font-size: 14px;
       color: var(--muted);
-      margin-bottom: 24px;
+      margin-bottom: 28px;
+      max-width: 760px;
+      line-height: 1.8;
     }
 
     /* ── Cards ── */
     .cards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 14px;
-      margin-bottom: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
     }
     .card {
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(18, 30, 49, 0.88), rgba(10, 18, 31, 0.9));
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 18px;
+      border-radius: var(--radius-lg);
+      padding: 18px 18px 16px;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.24s ease, border-color 0.24s ease, box-shadow 0.24s ease, background 0.24s ease;
     }
-    .card .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
-    .card .val { font-size: 26px; font-weight: 700; color: var(--text); }
-    .card .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+      opacity: 0.9;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(126, 208, 255, 0.24);
+      box-shadow: 0 26px 52px rgba(0, 0, 0, 0.28);
+    }
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .card-head-inline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .card .lbl {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .card .val {
+      font-family: 'Sora', 'IBM Plex Sans Hebrew', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.05em;
+    }
+    .card .hint { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.6; }
+    .card .signal-note { font-size: 11px; margin-top: 8px; line-height: 1.5; }
     .card.green .val { color: var(--green); }
     .card.blue .val  { color: var(--blue); }
     .card.yellow .val{ color: var(--yellow); }
     .card.red .val   { color: var(--red); }
     .card.purple .val{ color: var(--purple); }
+    .savings-strength {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 10px;
+      letter-spacing: .04em;
+      border: 1px solid var(--border);
+      background: #10161d;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .savings-strength.strong { background: #14321f; color: var(--green); border-color: #1f6f43; }
+    .savings-strength.medium { background: #111d2f; color: var(--blue); border-color: #2d4a6b; }
+    .savings-strength.weak { background: #332710; color: #f2cc60; border-color: #6b5316; }
+    .savings-strength.none { background: #321818; color: #ff9b9b; border-color: #6a3030; }
+    .savings-strength.pending { background: #10161d; color: var(--muted); border-color: var(--border); }
+    .signal-note.strong { color: var(--green); }
+    .signal-note.medium { color: var(--blue); }
+    .signal-note.weak { color: #f2cc60; }
+    .signal-note.none { color: #ff9b9b; }
+    .signal-note.pending { color: var(--muted); }
 
     /* ── Section box ── */
     .box {
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(15, 24, 40, 0.84), rgba(9, 17, 29, 0.9));
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 20px;
-      margin-bottom: 20px;
+      border-radius: var(--radius-xl);
+      padding: 22px;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+    }
+    .box:hover {
+      border-color: rgba(126, 208, 255, 0.18);
+      box-shadow: 0 24px 58px rgba(0,0,0,0.26);
     }
     .box h2 {
       font-size: 14px;
@@ -143,14 +305,82 @@
     /* ── Charts ── */
     .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
     @media (max-width: 860px) { .charts { grid-template-columns: 1fr; } }
-    canvas { max-height: 200px; }
+    .chart-panel {
+      overflow: hidden;
+    }
+    .chart-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+    .chart-head h2 {
+      margin-bottom: 6px;
+    }
+    .chart-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 440px;
+    }
+    .chart-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text-soft);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .chart-badge.spend {
+      background: linear-gradient(135deg, rgba(255, 141, 149, 0.16), rgba(241, 114, 125, 0.08));
+      border-color: rgba(255, 141, 149, 0.22);
+      color: #ffd6d9;
+    }
+    .chart-badge.savings {
+      background: linear-gradient(135deg, rgba(96, 228, 218, 0.16), rgba(68, 214, 168, 0.1));
+      border-color: rgba(96, 228, 218, 0.2);
+      color: #d6fffb;
+    }
+    .chart-canvas-shell {
+      position: relative;
+      min-height: 238px;
+      border-radius: 20px;
+      padding: 14px 10px 6px;
+      background:
+        radial-gradient(circle at top right, rgba(126, 208, 255, 0.08), transparent 34%),
+        linear-gradient(180deg, rgba(8, 15, 27, 0.84), rgba(8, 13, 23, 0.64));
+      border: 1px solid rgba(148, 175, 219, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    canvas {
+      width: 100%;
+      max-height: none;
+      height: 218px !important;
+    }
 
     /* ── Table ── */
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { text-align: right; color: var(--muted); font-weight: 500; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
-    td { padding: 10px 12px; border-bottom: 1px solid #161b22; color: #adbac7; }
+    th {
+      text-align: right;
+      color: var(--muted);
+      font-weight: 600;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(148, 175, 219, 0.12);
+      font-size: 11px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    td { padding: 12px; border-bottom: 1px solid rgba(148, 175, 219, 0.08); color: var(--text-soft); }
     tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #1c2128; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
     .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
     .pill.yes { background: #1a3a26; color: var(--green); }
     .pill.no  { background: var(--surface); color: var(--muted); }
@@ -163,20 +393,35 @@
       margin-bottom: 20px;
     }
     .platform-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(14, 24, 40, 0.86), rgba(10, 18, 31, 0.92));
+      border: 1px solid rgba(148, 175, 219, 0.12);
+      border-radius: 22px;
       padding: 18px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      transition: border-color 0.2s;
+      gap: 10px;
+      transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+      box-shadow: 0 18px 38px rgba(0,0,0,0.2);
     }
-    .platform-card.detected { border-color: var(--green); }
-    .platform-card.not-detected { opacity: 0.5; }
-    .platform-card .p-icon { font-size: 28px; }
-    .platform-card .p-name { font-size: 15px; font-weight: 600; }
-    .platform-card .p-status {
+    .platform-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(126, 208, 255, 0.24);
+      box-shadow: 0 24px 44px rgba(0,0,0,0.24);
+    }
+    .platform-card.detected { border-color: rgba(68, 214, 168, 0.42); }
+    .platform-card.available { border-color: rgba(73, 168, 255, 0.28); }
+    .platform-card.not-detected { opacity: 0.78; }
+    .platform-card .p-icon { font-size: 30px; }
+    .platform-card .p-name { font-size: 15px; font-weight: 700; color: var(--text); }
+    .platform-card .p-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .platform-card .p-status,
+    .platform-card .p-support,
+    .platform-card .p-savings {
       font-size: 12px;
       padding: 3px 10px;
       border-radius: 20px;
@@ -184,8 +429,363 @@
       width: fit-content;
     }
     .platform-card.detected .p-status { background: #1a3a26; color: var(--green); }
+    .platform-card.available .p-status { background: #1a2d42; color: var(--blue); }
     .platform-card.not-detected .p-status { background: #2d1b1b; color: var(--red); }
-    .platform-card .p-desc { font-size: 12px; color: var(--muted); }
+    .platform-card .p-support { background: #232b36; color: var(--text); }
+    .platform-card .p-savings.measured { background: #14321f; color: var(--green); }
+    .platform-card .p-savings.assisted { background: #111d2f; color: var(--blue); }
+    .platform-card .p-savings.none { background: #332710; color: #f2cc60; }
+    .platform-card .p-savings.utility { background: #23212b; color: #c4b5fd; }
+    .platform-card .p-desc { font-size: 12px; color: var(--muted); line-height: 1.7; }
+    .platform-card .p-limit { font-size: 12px; color: var(--text-soft); line-height: 1.7; }
+    .platform-card .p-caps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .platform-card .p-cap {
+      font-size: 11px;
+      color: var(--muted);
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+    .platform-section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .platform-section-sub {
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .measurement-banner {
+      background: linear-gradient(135deg, rgba(61, 44, 12, 0.7), rgba(33, 27, 13, 0.8));
+      border: 1px solid rgba(241, 201, 107, 0.24);
+      color: #f7d68b;
+      border-radius: 18px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      line-height: 1.7;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .platform-empty {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      background: #0d1117;
+    }
+
+    .methodology-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 20px;
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+    @media (max-width: 860px) { .methodology-grid { grid-template-columns: 1fr; } }
+    .methodology-note {
+      background: linear-gradient(180deg, rgba(12, 20, 34, 0.88), rgba(9, 15, 26, 0.92));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px 16px;
+    }
+    .breakdown-table td:last-child,
+    .breakdown-table th:last-child {
+      text-align: left;
+    }
+    .delta-pos { color: var(--green); }
+    .delta-neg { color: var(--red); }
+    .real-banner {
+      background: linear-gradient(135deg, rgba(12, 54, 41, 0.72), rgba(8, 35, 27, 0.82));
+      border: 1px solid rgba(68, 214, 168, 0.28);
+      color: #ccffe6;
+      border-radius: 18px;
+      padding: 13px 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .empty-state {
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+    .insights-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 980px) { .insights-grid { grid-template-columns: 1fr; } }
+    .signal-grid,
+    .snapshot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+    }
+    .signal-card,
+    .snapshot-card {
+      background: linear-gradient(180deg, rgba(11, 18, 31, 0.92), rgba(8, 14, 24, 0.95));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .signal-label,
+    .snapshot-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 8px;
+    }
+    .signal-value,
+    .snapshot-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .signal-sub,
+    .snapshot-sub {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .signal-card.good .signal-value,
+    .snapshot-card.good .snapshot-value { color: var(--green); }
+    .signal-card.info .signal-value,
+    .snapshot-card.info .snapshot-value { color: var(--blue); }
+    .signal-card.warn .signal-value,
+    .snapshot-card.warn .snapshot-value { color: var(--yellow); }
+    .signal-card.bad .signal-value,
+    .snapshot-card.bad .snapshot-value { color: var(--red); }
+    .inline-pills,
+    .f-extra {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .inline-pills { margin-top: 10px; }
+    .inline-pill,
+    .f-chip {
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      background: #10161d;
+      color: var(--muted);
+    }
+    .inline-pill.good,
+    .f-chip.good { background: #14321f; color: var(--green); border-color: #1f6f43; }
+    .inline-pill.info,
+    .f-chip.info { background: #111d2f; color: var(--blue); border-color: #2d4a6b; }
+    .inline-pill.warn,
+    .f-chip.warn { background: #332710; color: #f2cc60; border-color: #6b5316; }
+    .inline-pill.bad,
+    .f-chip.bad { background: #321818; color: #ff9b9b; border-color: #6a3030; }
+    .profile-box { margin-bottom: 20px; }
+    .guide-section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .guide-section-sub {
+      max-width: 740px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .guide-shell {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.92fr) minmax(0, 1.28fr);
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 980px) { .guide-shell { grid-template-columns: 1fr; } }
+    .guide-focus {
+      position: relative;
+      overflow: hidden;
+      border-radius: 24px;
+      padding: 22px;
+      background:
+        radial-gradient(circle at top left, rgba(96, 228, 218, 0.16), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(126, 208, 255, 0.16), transparent 36%),
+        linear-gradient(180deg, rgba(10, 18, 30, 0.96), rgba(8, 13, 23, 0.98));
+      border: 1px solid rgba(126, 208, 255, 0.18);
+      box-shadow: 0 28px 56px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.04);
+      min-height: 100%;
+    }
+    .guide-focus::after {
+      content: "";
+      position: absolute;
+      inset: auto -40px -40px auto;
+      width: 140px;
+      height: 140px;
+      background: radial-gradient(circle, rgba(96, 228, 218, 0.14), transparent 68%);
+      pointer-events: none;
+    }
+    .guide-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(17, 29, 47, 0.92);
+      border: 1px solid rgba(126, 208, 255, 0.16);
+      color: #b7dfff;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .guide-focus-title {
+      font-size: 25px;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 10px;
+      color: var(--text);
+      max-width: 12ch;
+    }
+    .guide-focus-copy {
+      color: var(--text-soft);
+      font-size: 14px;
+      line-height: 1.8;
+      max-width: 36ch;
+      margin-bottom: 16px;
+    }
+    .guide-focus-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .guide-focus-actions {
+      display: grid;
+      gap: 10px;
+    }
+    .guide-focus-action {
+      background: rgba(10, 16, 28, 0.72);
+      border: 1px solid rgba(148, 175, 219, 0.12);
+      border-radius: 16px;
+      padding: 12px 14px;
+    }
+    .guide-focus-action-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .guide-focus-action-value {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .guide-focus-action-sub {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .guide-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 12px;
+    }
+    .guide-card {
+      background: linear-gradient(180deg, rgba(12, 20, 34, 0.94), rgba(8, 14, 24, 0.98));
+      border: 1px solid rgba(148, 175, 219, 0.12);
+      border-radius: 20px;
+      padding: 16px;
+      display: grid;
+      gap: 10px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .guide-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(126, 208, 255, 0.22);
+      box-shadow: 0 16px 32px rgba(0,0,0,0.18);
+    }
+    .guide-card.is-priority {
+      border-color: rgba(241, 201, 107, 0.28);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    .guide-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .guide-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.35;
+    }
+    .guide-card-copy {
+      font-size: 12px;
+      line-height: 1.75;
+      color: var(--muted);
+    }
+    .guide-card-action {
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text-soft);
+      background: rgba(255,255,255,0.02);
+      border: 1px dashed rgba(148, 175, 219, 0.18);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+    .guide-card-note {
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+    .guide-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .guide-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      background: #10161d;
+      color: var(--muted);
+    }
+    .guide-badge.measured { background: #111d2f; color: var(--blue); border-color: #2d4a6b; }
+    .guide-badge.guidance { background: #23212b; color: #d2b3ff; border-color: #4e3d66; }
+    .guide-badge.estimated { background: #12262d; color: #7fe9de; border-color: #28565d; }
+    .guide-badge.quota { background: #2d2413; color: #f2cc60; border-color: #6b5316; }
+    .guide-badge.platform { background: #2a1911; color: #ffb692; border-color: #6a3d28; }
+    .guide-badge.info { background: #111d2f; color: var(--blue); border-color: #2d4a6b; }
+    .guide-badge.good { background: #14321f; color: var(--green); border-color: #1f6f43; }
+    .guide-badge.warn { background: #332710; color: #f2cc60; border-color: #6b5316; }
+    .guide-badge.bad { background: #321818; color: #ff9b9b; border-color: #6a3030; }
 
     /* ── Features Grid ── */
     .features-grid {
@@ -193,18 +793,42 @@
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 14px;
     }
+    .feature-section + .feature-section { margin-top: 18px; }
+    .feature-section-head {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+    .feature-section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .feature-section-sub {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
     .feature-item {
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(14, 23, 39, 0.86), rgba(9, 17, 29, 0.92));
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 22px;
       padding: 16px;
       display: flex;
       align-items: flex-start;
       gap: 14px;
+      box-shadow: 0 16px 34px rgba(0,0,0,0.18);
+      transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+    }
+    .feature-item:hover {
+      transform: translateY(-2px);
+      border-color: rgba(126, 208, 255, 0.22);
+      box-shadow: 0 24px 40px rgba(0,0,0,0.22);
     }
     .feature-item .f-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
-    .feature-item .f-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-    .feature-item .f-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .feature-item .f-title { font-size: 15px; font-weight: 700; margin-bottom: 5px; color: var(--text); }
+    .feature-item .f-desc { font-size: 12px; color: var(--muted); line-height: 1.65; }
     .feature-item .f-badge {
       margin-top: 8px;
       font-size: 11px;
@@ -214,6 +838,15 @@
     }
     .f-auto { background: #1a2a3a; color: var(--blue); }
     .f-manual { background: #1a2a1a; color: var(--green); }
+    .f-on { background: #14321f; color: var(--green); }
+    .f-off { background: #321818; color: #ff9b9b; }
+    .f-recommended { background: #1a2a1a; color: var(--green); }
+    .f-caution { background: #332710; color: #f2cc60; }
+    .f-optional { background: #1f2130; color: #c4b5fd; }
+    .f-measured { background: #111d2f; color: var(--blue); }
+    .f-estimated { background: #12262d; color: #7fe9de; }
+    .f-advice { background: #23212b; color: #d2b3ff; }
+    .f-quota { background: #2d2413; color: #f2cc60; }
 
     /* ── Chat ── */
     .chat-container {
@@ -226,9 +859,9 @@
       flex: 1;
       overflow-y: auto;
       padding: 16px;
-      background: var(--bg);
+      background: linear-gradient(180deg, rgba(10, 16, 28, 0.94), rgba(8, 13, 22, 0.96));
       border: 1px solid var(--border);
-      border-radius: 10px 10px 0 0;
+      border-radius: 22px 22px 0 0;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -242,13 +875,13 @@
       white-space: pre-wrap;
     }
     .msg.user {
-      background: #1f2d3d;
-      border: 1px solid #2d4a6b;
-      color: var(--blue);
+      background: linear-gradient(135deg, rgba(73, 168, 255, 0.18), rgba(33, 70, 116, 0.28));
+      border: 1px solid rgba(126, 208, 255, 0.18);
+      color: #d9f0ff;
       align-self: flex-end;
     }
     .msg.assistant {
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(16, 27, 45, 0.92), rgba(11, 20, 34, 0.96));
       border: 1px solid var(--border);
       color: var(--text);
       align-self: flex-start;
@@ -275,16 +908,16 @@
       display: flex;
       gap: 10px;
       padding: 14px;
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(16, 27, 45, 0.92), rgba(11, 20, 34, 0.96));
       border: 1px solid var(--border);
       border-top: none;
-      border-radius: 0 0 10px 10px;
+      border-radius: 0 0 22px 22px;
     }
     .chat-input {
       flex: 1;
-      background: var(--bg);
+      background: rgba(8, 14, 24, 0.84);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 14px;
       padding: 10px 14px;
       color: var(--text);
       font-size: 14px;
@@ -295,24 +928,33 @@
       max-height: 120px;
       direction: auto;
     }
-    .chat-input:focus { border-color: var(--blue); }
+    .chat-input:focus {
+      border-color: rgba(126, 208, 255, 0.32);
+      box-shadow: 0 0 0 4px rgba(73, 168, 255, 0.08);
+    }
     .send-btn {
-      background: var(--blue);
-      color: #000;
+      background: linear-gradient(135deg, #7ed0ff, #60e4da);
+      color: #061019;
       border: none;
-      border-radius: 8px;
-      padding: 10px 20px;
+      border-radius: 14px;
+      padding: 11px 20px;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       align-self: flex-end;
-      transition: opacity 0.15s;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.15s;
+      box-shadow: 0 14px 30px rgba(73, 168, 255, 0.22);
     }
-    .send-btn:hover { opacity: 0.85; }
+    .send-btn:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+      box-shadow: 0 18px 34px rgba(73, 168, 255, 0.28);
+    }
     .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .chat-info {
       display: flex;
+      flex-wrap: wrap;
       gap: 16px;
       padding: 10px 0;
       margin-bottom: 12px;
@@ -325,15 +967,21 @@
 
     /* ── Refresh button ── */
     .btn {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--muted);
-      border-radius: 8px;
-      padding: 7px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(148, 175, 219, 0.12);
+      color: var(--text-soft);
+      border-radius: 14px;
+      padding: 8px 14px;
       font-size: 13px;
       cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
     }
-    .btn:hover { background: #21262d; color: var(--text); }
+    .btn:hover {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border-color: rgba(126, 208, 255, 0.16);
+      transform: translateY(-1px);
+    }
 
     .demo-banner {
       background: #261a00;
@@ -356,6 +1004,52 @@
     .typing span:nth-child(2) { animation-delay: .2s; }
     .typing span:nth-child(3) { animation-delay: .4s; }
     @keyframes bounce { 0%, 80%, 100% { transform: scale(0.7); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
+
+    @media (max-width: 960px) {
+      .layout { display: block; }
+      .sidebar {
+        position: sticky;
+        top: 0;
+        width: 100%;
+        bottom: auto;
+        height: auto;
+        min-height: auto;
+        border-left: none;
+        border-bottom: 1px solid rgba(148, 175, 219, 0.12);
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 14px 12px;
+      }
+      .logo {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding: 0 8px 0 0;
+        min-width: 170px;
+      }
+      .nav-item {
+        margin: 0;
+        flex: 0 0 auto;
+      }
+      .sidebar-footer {
+        display: none;
+      }
+      .main {
+        margin-right: 0;
+        padding: 20px 16px 32px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-title { font-size: 1.7rem; }
+      .cards,
+      .features-grid,
+      .platforms-grid { grid-template-columns: 1fr; }
+      .box { padding: 18px; border-radius: 20px; }
+      .card { border-radius: 18px; }
+      .card .val { font-size: 24px; }
+    }
   </style>
 </head>
 <body>
@@ -394,27 +1088,49 @@
     <!-- ── Page: Stats ── -->
     <div class="page active" id="page-stats">
       <div class="page-title">📊 סטטיסטיקות שימוש</div>
-      <div class="page-sub">נתוני עלות, חיסכון וביצועים ב-30 הימים האחרונים</div>
+      <div class="page-sub">אומדנים מקומיים המבוססים על טוקני קלט/פלט והמחירים של משפחות Claude</div>
 
-      <div class="demo-banner" id="demoBanner">
-        ⚠️ מוצגים נתוני הדגמה — הנתונים האמיתיים שלך יופיעו לאחר שתתחיל לעבוד עם <code>ccso</code>
+      <div class="real-banner">
+        Real product mode: הדשבורד הזה מציג רק usage אמיתי של CCSO. אין כאן נתוני דמו סינתטיים.
+      </div>
+
+      <div class="measurement-banner">
+        עבודה בתוך Cursor או Windsurf לא נמדדת כרגע בדשבורד. החיסכון שמופיע כאן כולל רק פרומפטים ש-CCSO שלח בעצמו, למשל דרך מסלול Claude.
+      </div>
+
+      <div class="empty-state" id="emptyState" style="display:none">
+        עדיין אין נתוני שימוש אמיתיים להצגה.
+        <br>כדי לייצר אותם: הרץ <code>cc</code>, שלח כמה פרומפטים דרך CCSO, ואז רענן את הדשבורד.
+        <br>הדשבורד יציג רק מה שנשלח באמת דרך CCSO, לא שיחות מ-Cursor/Copilot.
       </div>
 
       <div class="cards">
         <div class="card red">
-          <div class="lbl">עלות כוללת</div>
+          <div class="lbl">Estimated Spend</div>
           <div class="val" id="totalCost">—</div>
-          <div class="hint">דולר אמריקאי</div>
+          <div class="hint">קלט + פלט משוערים</div>
         </div>
         <div class="card green">
-          <div class="lbl">חיסכון משוער <span id="liveIndicator" style="display:none;background:#22c55e;color:#000;font-size:10px;padding:2px 6px;border-radius:8px;margin-right:4px;">● LIVE</span></div>
+          <div class="lbl card-head">
+            <span>Net Savings</span>
+            <span class="card-head-inline">
+              <span id="totalSavedStrength" class="savings-strength pending">ממתין</span>
+              <span id="liveIndicator" style="display:none;background:#22c55e;color:#000;font-size:10px;padding:2px 6px;border-radius:8px;margin-right:4px;">● LIVE</span>
+            </span>
+          </div>
           <div class="val" id="totalSaved">—</div>
-          <div class="hint">ניתוב מודל + דחיסה + מטמון + כל הפיצ'רים</div>
+          <div class="hint" id="totalSavedHint">כיווץ פרומפט + פלט קצר + מטמון + השפעת ניתוב</div>
+          <div class="signal-note pending" id="totalSavedSignalNote">החיווי יתעדכן אחרי שימוש אמיתי דרך CCSO.</div>
         </div>
         <div class="card blue">
-          <div class="lbl">פקודות סה"כ</div>
+          <div class="lbl">Commands</div>
           <div class="val" id="totalCommands">—</div>
-          <div class="hint">פרומפטים שנשלחו</div>
+          <div class="hint">פרומפטים דרך CCSO</div>
+        </div>
+        <div class="card purple">
+          <div class="lbl">Sessions</div>
+          <div class="val" id="totalSessions">—</div>
+          <div class="hint">סשנים שהסתיימו</div>
         </div>
         <div class="card yellow">
           <div class="lbl">Handoffs</div>
@@ -422,40 +1138,139 @@
           <div class="hint">ניקויי סשן</div>
         </div>
         <div class="card purple">
-          <div class="lbl">סשנים</div>
-          <div class="val" id="totalSessions">—</div>
-          <div class="hint">סשנים שהושלמו</div>
+          <div class="lbl">Input Tokens Sent</div>
+          <div class="val" id="totalInputTokens">—</div>
+          <div class="hint">הטקסט ש-CCSO שלח בפועל</div>
+        </div>
+        <div class="card blue">
+          <div class="lbl">Output Tokens Received</div>
+          <div class="val" id="totalOutputTokens">—</div>
+          <div class="hint">הפלט שחזר מהמודל</div>
         </div>
         <div class="card green">
-          <div class="lbl">טוקנים שנחסכו</div>
-          <div class="val" id="totalTokens">—</div>
-          <div class="hint">תרגום + כיווץ + ניתוב</div>
+          <div class="lbl">Tokens Avoided</div>
+          <div class="val" id="totalTokensAvoided">—</div>
+          <div class="hint">טוקנים שנחסכו בפועל או הוערכו כחסוכים</div>
         </div>
       </div>
 
-      <div class="charts">
+      <div class="insights-grid">
         <div class="box" style="margin:0">
-          <h2>עלות יומית ($)</h2>
-          <canvas id="costChart"></canvas>
+          <h2>Savings Signal</h2>
+          <div class="methodology-note" id="savingsSignalSummary" style="margin-bottom:14px">
+            טוען...
+          </div>
+          <div class="signal-grid" id="savingsSignalGrid">
+            <div class="signal-card info">
+              <div class="signal-label">Measured savings</div>
+              <div class="signal-value">—</div>
+              <div class="signal-sub">טוען...</div>
+            </div>
+          </div>
         </div>
+
         <div class="box" style="margin:0">
-          <h2>חיסכון יומי ($)</h2>
-          <canvas id="savingsChart"></canvas>
+          <h2>Optimizer Snapshot</h2>
+          <div class="snapshot-grid" id="optimizerSnapshot">
+            <div class="snapshot-card info">
+              <div class="snapshot-label">Profile</div>
+              <div class="snapshot-value">—</div>
+              <div class="snapshot-sub">טוען...</div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="box">
+        <h2>Methodology</h2>
+        <div class="methodology-grid">
+          <div class="methodology-note" id="methodologySummary">
+            טוען...
+          </div>
+          <div>
+            <table class="breakdown-table">
+              <thead>
+                <tr>
+                  <th>מקור חיסכון</th>
+                  <th>USD</th>
+                </tr>
+              </thead>
+              <tbody id="savingsBreakdownTable">
+                <tr><td colspan="2" style="text-align:center;color:var(--muted)">טוען...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="guide-section-head">
+          <div>
+            <h2 style="margin-bottom:8px">Token Hygiene Guide</h2>
+            <div class="guide-section-sub">
+              מדריך עבודה נכון שמבוסס על פיצ'רים קיימים ב-CCSO ועל הרגלים מוכחים. חשוב: זה אזור הדרכה תפעולית, לא עוד מקום שבו CCSO "מחשב" חיסכון שלא באמת נמדד.
+            </div>
+          </div>
+          <div class="inline-pills" style="margin-top:0">
+            <span class="inline-pill good">Measured tips stay separate</span>
+            <span class="inline-pill info">Guidance is not direct savings</span>
+          </div>
+        </div>
+        <div class="guide-shell">
+          <div class="guide-focus" id="tokenGuideHero">
+            <div class="guide-kicker">Work Smarter</div>
+            <div class="guide-focus-title">טוען המלצה מובילה...</div>
+            <div class="guide-focus-copy">הדשבורד יראה כאן את ההמלצה הכי רלוונטית כרגע לפי מצב הסשן והפיצ'רים הפעילים.</div>
+          </div>
+          <div class="guide-list" id="tokenGuideList">
+            <div class="guide-card">
+              <div class="guide-card-title">טוען מדריך...</div>
+              <div class="guide-card-copy">ההמלצות יופיעו כאן בעוד רגע.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="charts">
+      <div class="box chart-panel" style="margin:0">
+        <div class="chart-head">
+          <div>
+            <h2>עלות יומית ($)</h2>
+            <div class="chart-subtitle">הוצאה שנמדדה בפועל על פקודות ש-CCSO שלח דרך ה-backend הפעיל.</div>
+          </div>
+          <div class="chart-badge spend">נמדד</div>
+        </div>
+        <div class="chart-canvas-shell">
+          <canvas id="costChart"></canvas>
+        </div>
+      </div>
+      <div class="box chart-panel" style="margin:0">
+        <div class="chart-head">
+          <div>
+            <h2>חיסכון יומי ($)</h2>
+            <div class="chart-subtitle">אומדן חיסכון לפי קיצור פרומפטים, cache, response hints והשפעת routing בלבד.</div>
+          </div>
+          <div class="chart-badge savings">אומדן</div>
+        </div>
+        <div class="chart-canvas-shell">
+          <canvas id="savingsChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+      <div class="box">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <h2 style="margin:0">סשנים אחרונים</h2>
+          <h2 style="margin:0">פעילות אחרונה</h2>
           <button class="btn" onclick="loadAll()">↻ רענן</button>
         </div>
         <table>
           <thead>
             <tr>
               <th>תאריך ושעה</th>
-              <th>עלות ($)</th>
-              <th>חיסכון ($)</th>
-              <th>טוקנים נחסכו</th>
+              <th>מקור</th>
+              <th>Spend ($)</th>
+              <th>Net Savings ($)</th>
+              <th>Tokens Avoided</th>
               <th>מודל</th>
               <th>פקודות</th>
               <th>משך</th>
@@ -463,7 +1278,7 @@
             </tr>
           </thead>
           <tbody id="sessionsTable">
-            <tr><td colspan="6" style="text-align:center;color:var(--muted)">טוען...</td></tr>
+            <tr><td colspan="9" style="text-align:center;color:var(--muted)">טוען...</td></tr>
           </tbody>
         </table>
       </div>
@@ -472,34 +1287,75 @@
     <!-- ── Page: Platforms ── -->
     <div class="page" id="page-platforms">
       <div class="page-title">🔌 פלטפורמות נתמכות</div>
-      <div class="page-sub">כלי AI שזוהו במחשב שלך ונתמכים על ידי CCSO</div>
+      <div class="page-sub">רק אינטגרציות עם קוד תמיכה ממשי ב-CCSO, יחד עם רמת התמיכה והמגבלות שלהן</div>
 
-      <div class="platforms-grid" id="platformsGrid">
-        <!-- filled by JS -->
+      <div class="measurement-banner">
+        חשוב: שעות עבודה בתוך Cursor או Windsurf לא יופיעו כחיסכון בדשבורד, כי CCSO לא רואה את הצ'אטים הפנימיים שלהם. הם נשארים כאן רק כאינטגרציות מסייעות, לא כמסלולי מדידה.
       </div>
 
       <div class="box">
-        <h2>איך עובד החיבור לפלטפורמות?</h2>
+        <div class="platform-section-title">Measured Runtime</div>
+        <div class="platform-section-sub">כאן נמצאות רק פלטפורמות שבהן CCSO גם יושב במסלול הריצה עצמו וגם יכול למדוד spend/savings בפועל.</div>
+        <div class="platforms-grid" id="platformsMeasuredGrid">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="platform-section-title">Assisted Integrations</div>
+        <div class="platform-section-sub">כאן CCSO יכול לעזור עם rules, MCP או helper מקומי, אבל לא מודד את השיחות של ה-IDE ולכן לא מציג חיסכון אמיתי מהן.</div>
+        <div class="platforms-grid" id="platformsAssistedGrid">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="platform-section-title">Instruction / Config Targets</div>
+        <div class="platform-section-sub">אלה לא runtimes שבהם CCSO חוסך בזמן אמת, אלא יעדים לייצוא הוראות או קובצי פרויקט.</div>
+        <div class="platforms-grid" id="platformsExportsGrid">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="platform-section-title">Utilities / Bridges</div>
+        <div class="platform-section-sub">כלי עזר משלימים. שימושיים, אבל לא חלק ממסלול חיסכון של coding runtime.</div>
+        <div class="platforms-grid" id="platformsUtilitiesGrid">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>Support Levels</h2>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px;line-height:1.7;color:var(--muted)">
           <div>
-            <div style="color:var(--text);font-weight:600;margin-bottom:6px">Claude Code</div>
-            CCSO שולח את הפרומפט לקלוד דרך <code style="background:#21262d;padding:1px 5px;border-radius:4px">claude --print</code> —
-            המצב הלא-אינטראקטיבי של ה-CLI. התוצאה חוזרת ישירות לטרמינל.
+            <div style="color:var(--text);font-weight:600;margin-bottom:6px">Full backend</div>
+            CCSO שולח את הפרומפט בעצמו, יודע להעריך עלות/חיסכון, ומספק חוויית dashboard/CLI מלאה.
           </div>
           <div>
-            <div style="color:var(--text);font-weight:600;margin-bottom:6px">Cursor / Windsurf</div>
-            CCSO מזריק את הקונטקסט (Git, זיכרון, תרגום) לפרומפט לפני שהוא מגיע ל-IDE.
-            תמיכה מלאה בשלב הבא.
+            <div style="color:var(--text);font-weight:600;margin-bottom:6px">Project rules + MCP</div>
+            CCSO כותב קבצי כללים והגדרות MCP, אבל לא רואה את השיחות בתוך ה-IDE ולא מודד usage שלהן.
           </div>
           <div>
-            <div style="color:var(--text);font-weight:600;margin-bottom:6px">Codex CLI</div>
-            תמיכה דרך <code style="background:#21262d;padding:1px 5px;border-radius:4px">codex</code> CLI —
-            מחליף את ה-backend ב-<code style="background:#21262d;padding:1px 5px;border-radius:4px">/status</code> בתוך CCSO.
+            <div style="color:var(--text);font-weight:600;margin-bottom:6px">Project config only</div>
+            CCSO יוצר קבצי פרויקט/סביבת עבודה, אבל לא שולט בריצה המקומית ולא מודד usage.
           </div>
           <div>
-            <div style="color:var(--text);font-weight:600;margin-bottom:6px">NotebookLM</div>
-            גשר אוטומטי — ייצוא סיכום CCSO לפורמט שמתאים להדבקה ב-NotebookLM.
+            <div style="color:var(--text);font-weight:600;margin-bottom:6px">Instruction file only</div>
+            CCSO יכול ליצור קובץ הוראות שצרכן אחר קורא. אין שליטה על האפליקציה עצמה ואין סטטיסטיקות שימוש.
           </div>
+          <div>
+            <div style="color:var(--text);font-weight:600;margin-bottom:6px">Companion bridge</div>
+            כלי עזר נפרד ש-CCSO מפעיל בפקודות ייעודיות. זה לא backend לעריכת קוד inline.
+          </div>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>Not Shown On Purpose</h2>
+        <div style="font-size:13px;line-height:1.8;color:var(--muted)">
+          Codex CLI, VS Code כללי, ו-Android Studio לא מוצגים כרגע בגריד התמיכה כי אין להם ב-CCSO אינטגרציה מאומתת וברורה ברמת מוצר.
+          <br>המבחן כאן הוא לא "אפשר אולי לגרום לזה לעבוד", אלא "יש תמיכה אמיתית שאפשר להסביר למשתמש בלי להטעות".
         </div>
       </div>
     </div>
@@ -507,7 +1363,18 @@
     <!-- ── Page: Features ── -->
     <div class="page" id="page-features">
       <div class="page-title">⚙️ פיצ'רים פעילים</div>
-      <div class="page-sub">כל הפונקציות שרצות אוטומטית (ויכולות להיות כבויות) + פקודות ידניות</div>
+      <div class="page-sub">מה באמת נמדד, מה רק משפר workflow או reuse, ומה נשאר session hygiene כדי לא להטעות לגבי חיסכון</div>
+
+      <div class="box profile-box">
+        <h2>Current Optimization Profile</h2>
+        <div class="snapshot-grid" id="featureProfileSnapshot">
+          <div class="snapshot-card info">
+            <div class="snapshot-label">Profile</div>
+            <div class="snapshot-value">—</div>
+            <div class="snapshot-sub">טוען...</div>
+          </div>
+        </div>
+      </div>
 
       <div style="margin-bottom:16px">
         <span style="font-size:12px;color:var(--muted);margin-left:16px">
@@ -520,28 +1387,56 @@
         </span>
       </div>
 
-      <div class="features-grid" id="featuresGrid">
-        <!-- filled by JS -->
+      <div class="box feature-section">
+        <div class="feature-section-head">
+          <div class="feature-section-title">Measured Savings</div>
+          <div class="feature-section-sub">כאן נמצאים רק פיצ'רים שבהם CCSO יודע לייחס חיסכון ישיר בטוקנים או ב-USD מתוך המסלול שלו עצמו.</div>
+        </div>
+        <div class="features-grid" id="featuresMeasuredGrid"></div>
+      </div>
+
+      <div class="box feature-section">
+        <div class="feature-section-head">
+          <div class="feature-section-title">Estimated Context Reuse</div>
+          <div class="feature-section-sub">פיצ'רים שעוזרים לא לטעון מחדש את אותו הקשר, אבל CCSO לא יכול לדעת בוודאות מה היית מדביק אחרת ולכן לא סופר אותם כחיסכון קשיח.</div>
+        </div>
+        <div class="features-grid" id="featuresEstimatedGrid"></div>
+      </div>
+
+      <div class="box feature-section">
+        <div class="feature-section-head">
+          <div class="feature-section-title">Workflow / Quality</div>
+          <div class="feature-section-sub">כלי עבודה שמשפרים איכות, סדר ובהירות, בלי לטעון שהם חוסכים טוקנים באופן מדיד.</div>
+        </div>
+        <div class="features-grid" id="featuresWorkflowGrid"></div>
+      </div>
+
+      <div class="box feature-section">
+        <div class="feature-section-head">
+          <div class="feature-section-title">Quota / Session Hygiene</div>
+          <div class="feature-section-sub">מנגנונים שעוזרים לא לתת לסשן להתנפח יותר מדי. זה חשוב, אבל לא מוצג כחיסכון ישיר.</div>
+        </div>
+        <div class="features-grid" id="featuresQuotaGrid"></div>
       </div>
     </div>
 
     <!-- ── Page: Chat ── -->
     <div class="page" id="page-chat">
       <div class="page-title">💬 שלח פרומפט</div>
-      <div class="page-sub">שלח פרומפטים לקלוד ישירות מהדפדפן — עם כל הפיצ'רים של CCSO</div>
+      <div class="page-sub">שלח פרומפטים ל-Claude מהדשבורד. זה מסלול נפרד מאינטגרציות IDE-בלבד.</div>
 
       <div class="chat-info">
         <span><div class="dot"></div> CCSO מחובר</span>
         <span>🤖 Backend: <strong id="chatBackend" style="color:var(--blue)">claude</strong></span>
-        <span>🌐 תרגום: <strong style="color:var(--green)">פעיל</strong></span>
-        <span>🧠 ניתוב חכם: <strong style="color:var(--green)">פעיל</strong></span>
+        <span>🌐 תרגום: <strong id="chatTranslate" style="color:var(--green)">—</strong></span>
+        <span>🧠 ניתוב חכם: <strong id="chatRouting" style="color:var(--green)">—</strong></span>
       </div>
 
       <div class="chat-container">
         <div class="chat-messages" id="chatMessages">
           <div class="msg system">
-            ברוך הבא! כתוב פרומפט בעברית או אנגלית — CCSO יעבד אותו אוטומטית ויעביר לקלוד.
-            <br>תמיכה ב-/template, /memory, /history וכל שאר הפקודות.
+            כתוב פרומפט בעברית או אנגלית והדשבורד ישלח אותו ל-Claude.
+            <br>כאן לא מוצגות אינטגרציות IDE-only כמו Cursor/Copilot, אלא מסלול ה-Claude הישיר של CCSO.
           </div>
         </div>
         <div class="chat-input-area">
@@ -586,51 +1481,781 @@ async function loadStats() {
       fetch('/api/stats').then(r => r.json()),
       fetch('/api/live').then(r => r.json()).catch(() => ({ active: false })),
     ]);
-    if (d.empty) return;
-    if (d._demo) document.getElementById('demoBanner').style.display = 'block';
+    const hasRealData = !d.empty || live.active;
+    document.getElementById('emptyState').style.display = hasRealData ? 'none' : 'block';
 
     // Add live session data on top of historical totals
     const liveCost    = live.active ? (live.cost        || 0) : 0;
-    const liveSaved   = live.active ? (live.dollarsSaved|| 0) : 0;
-    const liveTokens  = live.active ? (live.tokensSaved || 0) : 0;
+    const liveSaved   = live.active ? (live.estimatedNetSavingsUsd || live.dollarsSaved || 0) : 0;
+    const liveTokensAvoided = live.active ? (live.estimatedTokensAvoided || live.tokensSaved || 0) : 0;
     const liveCmds    = live.active ? (live.commands     || 0) : 0;
+    const liveInputTokens = live.active ? (live.estimatedInputTokens || 0) : 0;
+    const liveOutputTokens = live.active ? (live.estimatedOutputTokens || 0) : 0;
+    const histBreakdown = d.savingsBreakdownUsd || {};
+    const liveBreakdown = live.active ? (live.savingsBreakdownUsd || {}) : {};
+    const totalCost = (d.totalCost || 0) + liveCost;
+    const totalSaved = (d.estimatedNetSavingsUsd || 0) + liveSaved;
+    const totalInputTokens = (d.totalInputTokens || 0) + liveInputTokens;
+    const totalOutputTokens = (d.totalOutputTokens || 0) + liveOutputTokens;
+    const totalTokensAvoided = (d.totalTokensAvoided || 0) + liveTokensAvoided;
+    const mergedBreakdown = {
+      promptReduction: (histBreakdown.promptReduction || 0) + (liveBreakdown.promptReduction || 0),
+      outputHints: (histBreakdown.outputHints || 0) + (liveBreakdown.outputHints || 0),
+      cache: (histBreakdown.cache || 0) + (liveBreakdown.cache || 0),
+      routing: (histBreakdown.routing || 0) + (liveBreakdown.routing || 0),
+    };
 
-    document.getElementById('totalCost').textContent     = fmtUSD((d.totalCost || 0) + liveCost);
-    document.getElementById('totalSaved').textContent    = fmtUSD((d.estimatedSavingsUSD || 0) + liveSaved);
+    document.getElementById('totalCost').textContent     = fmtUSD(totalCost);
+    document.getElementById('totalSaved').textContent    = fmtUSD(totalSaved);
     document.getElementById('totalCommands').textContent = ((d.totalCommands || 0) + liveCmds).toLocaleString();
     document.getElementById('totalHandoffs').textContent = (d.totalHandoffs || 0).toLocaleString();
     document.getElementById('totalSessions').textContent = (d.totalSessions || 0).toLocaleString();
-    document.getElementById('totalTokens').textContent   = fmt((d.totalTokensSaved || 0) + liveTokens);
+    document.getElementById('totalInputTokens').textContent = fmt(totalInputTokens);
+    document.getElementById('totalOutputTokens').textContent = fmt(totalOutputTokens);
+    document.getElementById('totalTokensAvoided').textContent = fmt(totalTokensAvoided);
+    syncChatState(d);
 
     // Show live indicator if session is active
     const liveEl = document.getElementById('liveIndicator');
     if (liveEl) liveEl.style.display = live.active ? 'inline' : 'none';
+
+    renderNetSavingsStrength({
+      totalCost,
+      totalSaved,
+      totalTokensAvoided,
+      totalInputTokens,
+      totalOutputTokens,
+      hasRealData,
+      breakdown: mergedBreakdown,
+    });
+
+    renderSavingsSignal({
+      totalCost,
+      totalSaved,
+      totalInputTokens,
+      totalOutputTokens,
+      totalTokensAvoided,
+      breakdown: mergedBreakdown,
+      hasRealData,
+      liveActive: live.active,
+    });
+    const optimizerSettings = d.optimizerSettings || {};
+    const resetAdvice = live.resetAdvice || d.resetAdvice || null;
+    renderOptimizerSnapshot(optimizerSettings, d.featureStates || {}, 'optimizerSnapshot', resetAdvice);
+    renderMethodology(d.methodology, mergedBreakdown, d.backend);
+    renderTokenHygieneGuide({
+      settings: optimizerSettings,
+      live,
+      hasRealData,
+      totalCost,
+      totalSaved,
+      totalCommands: (d.totalCommands || 0) + liveCmds,
+      totalTokensAvoided,
+      totalInputTokens,
+      totalOutputTokens,
+      resetAdvice,
+    });
   } catch(e) { console.error(e); }
+}
+
+function renderNetSavingsStrength({
+  totalCost = 0,
+  totalSaved = 0,
+  totalTokensAvoided = 0,
+  totalInputTokens = 0,
+  totalOutputTokens = 0,
+  hasRealData = false,
+  breakdown = {},
+} = {}) {
+  const badge = document.getElementById('totalSavedStrength');
+  const note = document.getElementById('totalSavedSignalNote');
+  const hint = document.getElementById('totalSavedHint');
+  if (!badge || !note || !hint) return;
+
+  const topContributor = getTopContributor(breakdown);
+  const { tone, label, noteText } = getSavingsStrength({
+    totalCost,
+    totalSaved,
+    totalTokensAvoided,
+    totalInputTokens,
+    totalOutputTokens,
+    hasRealData,
+    topContributor,
+  });
+
+  badge.className = `savings-strength ${tone}`;
+  badge.textContent = label;
+  note.className = `signal-note ${tone}`;
+  note.textContent = noteText;
+  hint.textContent = topContributor
+    ? `מוביל כרגע: ${topContributor.label}`
+    : 'כיווץ פרומפט + פלט קצר + מטמון + השפעת ניתוב';
+}
+
+function renderSavingsSignal({
+  totalCost = 0,
+  totalSaved = 0,
+  totalInputTokens = 0,
+  totalOutputTokens = 0,
+  totalTokensAvoided = 0,
+  breakdown = {},
+  hasRealData = false,
+  liveActive = false,
+} = {}) {
+  const summary = document.getElementById('savingsSignalSummary');
+  const grid = document.getElementById('savingsSignalGrid');
+  const totalSent = totalInputTokens + totalOutputTokens;
+  const avoidedRatio = totalSent > 0 ? (totalTokensAvoided / totalSent) * 100 : 0;
+  const savingsVsSpend = totalCost > 0 ? (totalSaved / totalCost) * 100 : 0;
+  const topContributor = getTopContributor(breakdown);
+
+  if (summary) {
+    if (!hasRealData) {
+      summary.innerHTML = 'אין עדיין מספיק שימוש אמיתי כדי להציג חיווי חיסכון. ברגע שתריץ כמה פרומפטים דרך CCSO, כאן תופיע תמונת החיסכון בפועל.';
+    } else {
+      summary.innerHTML = `
+        <div style="color:var(--text);font-weight:600;margin-bottom:8px">
+          ${totalSaved > 0 ? 'נמדד חיסכון אמיתי' : 'יש שימוש אמיתי, אבל החיסכון עדיין קטן או אפסי'}
+        </div>
+        <div style="margin-bottom:8px">
+          הדשבורד מחשב חיסכון רק על טוקנים ש-CCSO עצמו שלח או מנע, ולא על שיחות IDE חיצוניות.
+        </div>
+        <div class="inline-pills">
+          <span class="inline-pill ${liveActive ? 'good' : 'info'}">${liveActive ? 'סשן חי פעיל' : 'ללא סשן חי כרגע'}</span>
+          <span class="inline-pill info">נמדד רק דרך CCSO</span>
+          <span class="inline-pill ${topContributor ? 'good' : 'warn'}">
+            ${topContributor ? `מקור מוביל: ${topContributor.label}` : 'עדיין אין מקור חיסכון מוביל'}
+          </span>
+        </div>
+      `;
+    }
+  }
+
+  if (!grid) return;
+
+  const cards = [
+    {
+      label: 'Avoided מול sent',
+      value: totalSent > 0 ? fmtPercent(avoidedRatio) : '—',
+      sub: totalSent > 0
+        ? `${fmt(totalTokensAvoided)} avoided מול ${fmt(totalSent)} sent`
+        : 'אין עדיין טוקנים שנשלחו דרך CCSO',
+      tone: avoidedRatio >= 15 ? 'good' : avoidedRatio > 0 ? 'info' : 'warn',
+    },
+    {
+      label: 'Savings מול spend',
+      value: totalCost > 0 ? fmtPercent(savingsVsSpend) : '—',
+      sub: totalCost > 0
+        ? `${fmtUSD(totalSaved)} savings מול ${fmtUSD(totalCost)} spend`
+        : 'אין עדיין spend אמיתי להשוואה',
+      tone: savingsVsSpend >= 20 ? 'good' : savingsVsSpend > 0 ? 'info' : 'warn',
+    },
+    {
+      label: 'מקור חיסכון מוביל',
+      value: topContributor ? topContributor.label : '—',
+      sub: topContributor
+        ? `${fmtUSD(topContributor.value)} חיסכון משוער`
+        : 'עוד לא זוהה מקור חיסכון בולט',
+      tone: topContributor ? 'good' : 'warn',
+    },
+    {
+      label: 'מצב מדידה',
+      value: liveActive ? 'LIVE' : hasRealData ? 'HISTORY' : '—',
+      sub: 'נמדד רק על פרומפטים שעברו דרך CCSO',
+      tone: liveActive ? 'good' : hasRealData ? 'info' : 'warn',
+    },
+  ];
+
+  grid.innerHTML = cards.map((card) => `
+    <div class="signal-card ${card.tone}">
+      <div class="signal-label">${card.label}</div>
+      <div class="signal-value">${card.value}</div>
+      <div class="signal-sub">${card.sub}</div>
+    </div>
+  `).join('');
+}
+
+function renderOptimizerSnapshot(settings = {}, stateMap = {}, targetId = 'optimizerSnapshot', resetAdvice = null) {
+  const root = document.getElementById(targetId);
+  if (!root) return;
+
+  const riskyDisabledCount = [
+    settings.translate?.enabled,
+    settings.responseHints?.enabled,
+    settings.truncateLargePastes?.enabled,
+    settings.dedupeLongInput?.enabled,
+    settings.codeCompression?.enabled,
+  ].filter((enabled) => enabled === false).length;
+
+  const cards = [
+    {
+      label: 'Cache',
+      value: settings.promptCache?.enabled ? 'On' : 'Off',
+      sub: settings.promptCache?.enabled
+        ? `TTL ${settings.promptCache.ttlHours}h + conservative whitespace normalization`
+        : 'מטמון כבוי',
+      tone: settings.promptCache?.enabled ? 'good' : 'bad',
+    },
+    {
+      label: 'Memory context',
+      value: settings.memory?.enabled ? 'Relevant only' : 'Off',
+      sub: settings.memory?.enabled
+        ? `Budget ${fmt(settings.memory.tokenBudget)} tokens · up to ${settings.memory.maxFacts} facts`
+        : 'אין הזרקת זיכרון',
+      tone: settings.memory?.enabled ? 'info' : 'warn',
+    },
+    {
+      label: 'Saved briefs',
+      value: settings.briefs?.enabled ? 'Ready' : 'Off',
+      sub: settings.briefs?.enabled
+        ? `Budget ${fmt(settings.briefs.tokenBudget)} tokens · inject only on file mention`
+        : 'אין brief reuse שמור',
+      tone: settings.briefs?.enabled ? 'info' : 'warn',
+    },
+    {
+      label: 'Log trimming',
+      value: settings.trimLogs?.enabled ? 'Error-focused' : 'Off',
+      sub: settings.trimLogs?.enabled
+        ? 'שומר בלוקי שגיאה ו-stack trace, לא רק tail עיוור'
+        : 'לוגים נשלחים ללא trimming',
+      tone: settings.trimLogs?.enabled ? 'good' : 'warn',
+    },
+    {
+      label: 'Smart routing',
+      value: settings.routing?.enabled ? 'On' : 'Off',
+      sub: settings.routing?.enabled
+        ? 'Simple → Haiku · complex → Opus'
+        : 'כל הפרומפטים נשלחים ללא ניתוב',
+      tone: settings.routing?.enabled ? 'good' : 'bad',
+    },
+    {
+      label: 'Reset advisor',
+      value: resetAdvice?.recommended ? resetAdvice.label : (settings.resetAdvisor?.enabled ? 'On' : 'Off'),
+      sub: resetAdvice?.recommended
+        ? resetAdvice.reasons.join(' · ')
+        : settings.resetAdvisor?.enabled
+          ? `${settings.resetAdvisor.turns} turns · ${settings.resetAdvisor.minutes} min`
+          : 'Session advisor כבוי',
+      tone: resetAdvice?.recommended ? 'warn' : settings.resetAdvisor?.enabled ? 'info' : 'bad',
+    },
+    {
+      label: 'Lossy features kept off',
+      value: `${riskyDisabledCount}/5`,
+      sub: 'Translate · output hints · truncate · dedupe · code compression',
+      tone: riskyDisabledCount >= 4 ? 'good' : riskyDisabledCount >= 2 ? 'warn' : 'bad',
+    },
+  ];
+
+  root.innerHTML = cards.map((card) => `
+    <div class="snapshot-card ${card.tone}">
+      <div class="snapshot-label">${card.label}</div>
+      <div class="snapshot-value">${card.value}</div>
+      <div class="snapshot-sub">${card.sub}</div>
+    </div>
+  `).join('');
+}
+
+function getTopContributor(breakdown = {}) {
+  const rows = [
+    { label: 'Prompt reduction', value: breakdown.promptReduction || 0 },
+    { label: 'Cache hits', value: breakdown.cache || 0 },
+    { label: 'Shorter outputs', value: breakdown.outputHints || 0 },
+    { label: 'Model routing', value: breakdown.routing || 0 },
+  ].filter((item) => item.value > 0);
+
+  if (!rows.length) return null;
+  rows.sort((a, b) => b.value - a.value);
+  return rows[0];
+}
+
+function getSavingsStrength({
+  totalCost = 0,
+  totalSaved = 0,
+  totalTokensAvoided = 0,
+  totalInputTokens = 0,
+  totalOutputTokens = 0,
+  hasRealData = false,
+  topContributor = null,
+} = {}) {
+  if (!hasRealData) {
+    return {
+      tone: 'pending',
+      label: 'ממתין',
+      noteText: 'החיווי יתעדכן אחרי שימוש אמיתי דרך CCSO.',
+    };
+  }
+
+  const totalSent = totalInputTokens + totalOutputTokens;
+  const savingsVsSpend = totalCost > 0 ? (totalSaved / totalCost) * 100 : 0;
+  const avoidedRatio = totalSent > 0 ? (totalTokensAvoided / totalSent) * 100 : 0;
+
+  if (totalSaved <= 0 || (savingsVsSpend < 5 && totalTokensAvoided < 1000)) {
+    return {
+      tone: 'none',
+      label: 'לא הוכח',
+      noteText: 'יש שימוש אמיתי, אבל עדיין אין חיסכון משמעותי שנראה בנתונים.',
+    };
+  }
+
+  if (savingsVsSpend >= 25 || totalTokensAvoided >= 10000 || avoidedRatio >= 25) {
+    return {
+      tone: 'strong',
+      label: 'חזק',
+      noteText: topContributor
+        ? `חיסכון משמעותי, כרגע בעיקר דרך ${topContributor.label}.`
+        : 'חיסכון משמעותי גם מול ה-spend וגם בהיקף הטוקנים שנמנעו.',
+    };
+  }
+
+  if (savingsVsSpend >= 10 || totalTokensAvoided >= 3000 || avoidedRatio >= 12) {
+    return {
+      tone: 'medium',
+      label: 'בינוני',
+      noteText: topContributor
+        ? `יש חיסכון יציב לעין, כרגע בעיקר דרך ${topContributor.label}.`
+        : 'יש חיסכון יציב ונראה לעין, אבל עוד לא ברמה חזקה במיוחד.',
+    };
+  }
+
+  return {
+    tone: 'weak',
+    label: 'חלש',
+    noteText: 'יש חיסכון ראשוני, אבל עדיין מוקדם או קטן יחסית ל-spend הכולל.',
+  };
+}
+
+function renderMethodology(methodology = {}, breakdown = {}, backend = 'claude') {
+  const summary = document.getElementById('methodologySummary');
+  const table = document.getElementById('savingsBreakdownTable');
+  const pricingSource = methodology.pricingSource
+    ? `<a href="${methodology.pricingSource.url}" target="_blank" rel="noreferrer" style="color:var(--blue)">${methodology.pricingSource.label}</a>`
+    : 'לא זמין';
+
+  summary.innerHTML = `
+    <div style="color:var(--text);font-weight:600;margin-bottom:8px">Backend: ${backend}</div>
+    <div style="margin-bottom:10px">${methodology.note || 'הנתונים מוצגים כאומדן מקומי.'}</div>
+    <div style="margin-bottom:10px">${methodology.spendIncludes || ''}</div>
+    <div style="margin-bottom:10px">Pricing source: ${pricingSource}</div>
+    <div class="inline-pills" style="margin-bottom:10px">
+      <span class="inline-pill good">Measured savings: prompt reduction, cache, output hints, routing</span>
+      <span class="inline-pill info">Estimated impact: memory + saved briefs</span>
+      <span class="inline-pill" style="background:#23212b;color:#d2b3ff;border-color:#4e3d66">Workflow advice: bundling, templates, history</span>
+      <span class="inline-pill warn">Quota hygiene: handoff, reset advisor, time guard</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted)">
+      ${(methodology.savingsIncludes || []).map(item => `• ${item}`).join('<br>')}
+    </div>
+  `;
+
+  const rows = [
+    ['Prompt reduction', breakdown.promptReduction || 0],
+    ['Shorter outputs', breakdown.outputHints || 0],
+    ['Cache hits', breakdown.cache || 0],
+    ['Routing impact vs Sonnet', breakdown.routing || 0],
+  ];
+
+  if (!rows.some(([, value]) => Math.abs(value) > 0)) {
+    table.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--muted)">אין עדיין breakdown אמיתי להצגה</td></tr>';
+    return;
+  }
+
+  table.innerHTML = rows.map(([label, value]) => {
+    const cls = value < 0 ? 'delta-neg' : 'delta-pos';
+    return `
+      <tr>
+        <td>${label}</td>
+        <td class="${cls}">${value < 0 ? '-' : ''}${fmtUSD(Math.abs(value))}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderTokenHygieneGuide({
+  settings = {},
+  live = {},
+  hasRealData = false,
+  totalCost = 0,
+  totalSaved = 0,
+  totalCommands = 0,
+  totalTokensAvoided = 0,
+  totalInputTokens = 0,
+  totalOutputTokens = 0,
+  resetAdvice = null,
+} = {}) {
+  const hero = document.getElementById('tokenGuideHero');
+  const list = document.getElementById('tokenGuideList');
+  if (!hero || !list) return;
+
+  const guideItems = buildTokenHygieneItems({
+    settings,
+    live,
+    hasRealData,
+    totalCost,
+    totalSaved,
+    totalCommands,
+    totalTokensAvoided,
+    totalInputTokens,
+    totalOutputTokens,
+    resetAdvice,
+  });
+
+  const lead = guideItems[0];
+  hero.innerHTML = `
+    <div class="guide-kicker">${lead.heroKicker || 'Work Smarter'}</div>
+    <div class="guide-focus-title">${lead.heroTitle || lead.title}</div>
+    <div class="guide-focus-copy">${lead.heroCopy || lead.copy}</div>
+    <div class="guide-focus-meta">
+      <span class="guide-badge ${lead.kindTone}">${lead.kindLabel}</span>
+      <span class="guide-badge ${lead.statusTone}">${lead.statusLabel}</span>
+      ${lead.countedLabel ? `<span class="guide-badge ${lead.countedTone || 'guidance'}">${lead.countedLabel}</span>` : ''}
+    </div>
+    <div class="guide-focus-actions">
+      <div class="guide-focus-action">
+        <div class="guide-focus-action-label">Recommended next step</div>
+        <div class="guide-focus-action-value">${lead.action}</div>
+        <div class="guide-focus-action-sub">${lead.actionSub}</div>
+      </div>
+      <div class="guide-focus-action">
+        <div class="guide-focus-action-label">Why this matters</div>
+        <div class="guide-focus-action-value">${lead.whyTitle}</div>
+        <div class="guide-focus-action-sub">${lead.note}</div>
+      </div>
+    </div>
+  `;
+
+  list.innerHTML = guideItems.map((item, index) => `
+    <div class="guide-card ${index === 0 ? 'is-priority' : ''}">
+      <div class="guide-card-head">
+        <div class="guide-card-title">${item.title}</div>
+        <span class="guide-badge ${item.statusTone}">${item.statusLabel}</span>
+      </div>
+      <div class="guide-badges">
+        <span class="guide-badge ${item.kindTone}">${item.kindLabel}</span>
+        ${item.countedLabel ? `<span class="guide-badge ${item.countedTone || 'guidance'}">${item.countedLabel}</span>` : ''}
+      </div>
+      <div class="guide-card-copy">${item.copy}</div>
+      <div class="guide-card-action"><strong>Try:</strong> ${item.action}<br>${item.actionSub}</div>
+      <div class="guide-card-note">${item.note}</div>
+    </div>
+  `).join('');
+}
+
+function buildTokenHygieneItems({
+  settings = {},
+  live = {},
+  hasRealData = false,
+  totalCost = 0,
+  totalSaved = 0,
+  totalCommands = 0,
+  totalTokensAvoided = 0,
+  totalInputTokens = 0,
+  totalOutputTokens = 0,
+  resetAdvice = null,
+} = {}) {
+  const liveTurns = live.active ? Number(live.turns || 0) : 0;
+  const liveSent = (live.estimatedInputTokens || 0) + (live.estimatedOutputTokens || 0);
+  const measuredRatio = (totalInputTokens + totalOutputTokens) > 0
+    ? (totalTokensAvoided / (totalInputTokens + totalOutputTokens)) * 100
+    : 0;
+  const briefCount = Number(settings.briefs?.savedCount || 0);
+  const staleBriefCount = Number(settings.briefs?.staleCount || 0);
+
+  const items = [
+    {
+      id: 'reset',
+      title: 'Reset or handoff before the session bloats',
+      kindLabel: 'Quota / session hygiene',
+      kindTone: 'quota',
+      countedLabel: 'Not counted as direct savings',
+      countedTone: 'quota',
+      statusLabel: resetAdvice?.recommended ? resetAdvice.label : (liveTurns >= 10 ? 'נהיה רלוונטי' : 'בשליטה'),
+      statusTone: resetAdvice?.recommended ? 'warn' : liveTurns >= 10 ? 'info' : 'good',
+      copy: 'ההרגל הזה מחליף את עצת "לפתוח צ׳אט חדש כל 15 הודעות" בכלל שקוף יותר: CCSO מסתכל על turns, זמן וטוקנים בפועל ומזהיר רק כשהסשן באמת מתחיל להתנפח.',
+      action: '<code>/handoff</code>',
+      actionSub: resetAdvice?.recommended
+        ? 'כדאי לבצע handoff עכשיו ולפתוח סשן נקי.'
+        : 'שמור את זה לרגע שבו turns, זמן או טוקנים מתחילים להצטבר.',
+      whyTitle: resetAdvice?.recommended ? 'Recommended right now' : 'Keeps context clean',
+      note: resetAdvice?.recommended
+        ? resetAdvice.reasons.join(' · ')
+        : 'היגיינת סשן טובה משפרת איכות, אבל לא מוצגת כחיסכון מדיד.',
+      score: resetAdvice?.recommended ? 100 : liveTurns >= 10 ? 68 : 44,
+      heroKicker: resetAdvice?.recommended ? 'Right Now' : 'Session Hygiene',
+      heroTitle: resetAdvice?.recommended ? 'הגיע זמן handoff' : 'אל תיתן לסשן להתנפח',
+      heroCopy: resetAdvice?.recommended
+        ? `הסשן כבר מראה סימני עומס: ${resetAdvice.reasons.join(' · ')}.`
+        : 'סשן קצר ונקי לרוב שומר על איכות טובה יותר מסשן אחד ארוך ומתנפח.',
+    },
+    {
+      id: 'bundle',
+      title: 'Bundle related asks into one prompt',
+      kindLabel: 'Workflow guidance',
+      kindTone: 'guidance',
+      countedLabel: 'Guidance, not hard measured savings',
+      countedTone: 'guidance',
+      statusLabel: totalCommands >= 4 ? 'High leverage now' : 'Ready',
+      statusTone: totalCommands >= 4 ? 'warn' : 'good',
+      copy: 'זה מיישם ישירות את ההרגל מהמסמך: במקום שלוש הודעות עם אותו רקע, בקשה אחת מסודרת טוענת את הקונטקסט המשותף פעם אחת בלבד.',
+      action: '<code>/bundle fix login bug; add tests; explain root cause</code>',
+      actionSub: 'השתמש בזה כשיש כמה סעיפים קשורים ולא כשאתה צריך חקירה פתוחה ונפרדת.',
+      whyTitle: 'Cuts repeated setup',
+      note: 'CCSO לא סופר את זה אוטומטית כחיסכון ישיר, כי הוא לא יודע כמה רקע היית כותב שוב ידנית.',
+      score: totalCommands >= 4 ? 92 : 78,
+      heroKicker: 'Shared Context',
+      heroTitle: 'אחד רקע, כמה משימות',
+      heroCopy: 'כשהמשימות קשורות, bundling חוסך טעינה חוזרת של אותו קונטקסט ומשפר את רצף העבודה.',
+    },
+    {
+      id: 'routing',
+      title: 'Use the right model for the job',
+      kindLabel: 'Measured with CCSO',
+      kindTone: 'measured',
+      countedLabel: settings.routing?.enabled ? 'Routing impact is measured' : 'Currently off',
+      countedTone: settings.routing?.enabled ? 'measured' : 'bad',
+      statusLabel: settings.routing?.enabled ? 'Running now' : 'Turn on',
+      statusTone: settings.routing?.enabled ? 'good' : 'bad',
+      copy: 'זו הגרסה של CCSO לעצת "תשתמש במודל הנכון": שאלות קלות לא חייבות לקבל את אותו מסלול כמו refactor כבד או audit.',
+      action: settings.routing?.enabled ? 'Keep smart routing enabled' : 'Enable smart routing in settings',
+      actionSub: settings.routing?.enabled
+        ? 'Simple work can go to Haiku while heavier tasks stay on stronger models.'
+        : 'בלי routing, כל הפרומפטים נשלחים ללא אופטימיזציית עלות.',
+      whyTitle: 'One of the safest savings levers',
+      note: 'ב-CCSO ההשפעה הזו כן מוערכת בדשבורד מול Sonnet baseline.',
+      score: settings.routing?.enabled ? 86 : 95,
+      heroKicker: settings.routing?.enabled ? 'Measured Lever' : 'Fix This First',
+      heroTitle: settings.routing?.enabled ? 'המודל הנכון כבר עובד בשבילך' : 'Smart routing כרגע כבוי',
+      heroCopy: settings.routing?.enabled
+        ? 'זה אחד המנגנונים הבודדים שבאמת גם עוזרים וגם נמדדים בדשבורד.'
+        : 'אם אתה רוצה חיסכון מדיד בלי לפגוע באיכות, זה המתג הראשון ששווה להדליק.',
+    },
+    {
+      id: 'briefs',
+      title: 'Save repeated file context once',
+      kindLabel: 'Estimated context reuse',
+      kindTone: 'estimated',
+      countedLabel: 'Not counted as direct savings',
+      countedTone: 'estimated',
+      statusLabel: briefCount > 0 ? `${briefCount} briefs ready` : 'No briefs yet',
+      statusTone: briefCount > 0 ? 'good' : 'warn',
+      copy: 'זה מקביל להרגלים מהמסמך כמו Projects ושמירת קונטקסט פעם אחת: במקום להדביק שוב את אותו קובץ או מסמך, שמור brief קצר והזרק אותו רק כשהקובץ מוזכר.',
+      action: '<code>/brief save src/auth/service.js</code>',
+      actionSub: briefCount > 0
+        ? `יש כרגע ${fmt(briefCount)} briefs שמורים${staleBriefCount ? `, מתוכם ${fmt(staleBriefCount)} מיושנים` : ''}.`
+        : 'מתאים במיוחד לקבצים, מסמכים ו-architecture notes שחוזרים שוב ושוב.',
+      whyTitle: 'Prevents repeated copy-paste',
+      note: 'הדשבורד מסווג את זה כ-context reuse בלבד, כי CCSO לא יודע איזה paste ידני נמנע בפועל.',
+      score: briefCount > 0 ? 88 : 82,
+      heroKicker: 'Reusable Context',
+      heroTitle: briefCount > 0 ? 'יש לך כבר קונטקסט שמור לשימוש חוזר' : 'עוד לא נשמרו briefs',
+      heroCopy: briefCount > 0
+        ? 'כדאי להשתמש ב-briefs על קבצים חוזרים במקום להעמיס כל פעם מחדש את אותו רקע.'
+        : 'אם יש לך קבצים או מסמכים שחוזרים הרבה, briefs הם אחד השדרוגים הכי שימושיים בלי lossy rewrite.',
+    },
+    {
+      id: 'memory',
+      title: 'Keep stable project facts in memory',
+      kindLabel: 'Estimated context reuse',
+      kindTone: 'estimated',
+      countedLabel: 'Context helper, not measured directly',
+      countedTone: 'estimated',
+      statusLabel: settings.memory?.enabled ? 'Active' : 'Off',
+      statusTone: settings.memory?.enabled ? 'good' : 'bad',
+      copy: 'המסמך דיבר על לשמור קונטקסט פעם אחת. ב-CCSO זה קיים דרך project memory: עובדות קצרות נשמרות ומוזרקות רק כשהן רלוונטיות.',
+      action: '<code>/memory add "Auth service lives in src/auth/service.js"</code>',
+      actionSub: settings.memory?.enabled
+        ? `Budget ${fmt(settings.memory.tokenBudget)} tokens · up to ${fmt(settings.memory.maxFacts)} facts`
+        : 'כדאי להדליק memory אם יש עובדות קבועות שאתה מסביר שוב ושוב.',
+      whyTitle: 'Good for stable facts',
+      note: 'memory לא אמור להחליף prompt ברור, אלא למנוע חזרה מיותרת על רקע קבוע.',
+      score: settings.memory?.enabled ? 74 : 84,
+      heroKicker: 'Project Memory',
+      heroTitle: settings.memory?.enabled ? 'זיכרון פרויקט כבר פעיל' : 'Project memory כבוי',
+      heroCopy: settings.memory?.enabled
+        ? 'המשך לשמור שם רק עובדות יציבות ולא בקשות רגעיות.'
+        : 'אם אתה מסביר שוב ושוב איפה קוד נמצא או איך הארכיטקטורה בנויה, memory יקטין את החזרה הזאת.',
+    },
+    {
+      id: 'edit',
+      title: 'Edit the ask instead of stacking more background',
+      kindLabel: 'Workflow guidance',
+      kindTone: 'guidance',
+      countedLabel: 'Good habit, not measured',
+      countedTone: 'guidance',
+      statusLabel: liveTurns >= 6 ? 'Relevant now' : 'Keep in mind',
+      statusTone: liveTurns >= 6 ? 'warn' : 'info',
+      copy: 'זה הטיפ מהמסמך של "תערכו, לא תערמו": כשאותה שאלה משנה כיוון, עדיף לנסח מחדש את הבקשה הנוכחית מאשר להוסיף עוד ועוד רקע סותר.',
+      action: 'Rewrite the current prompt before sending the next long follow-up',
+      actionSub: 'אם יש כמה נושאים שונים, עדיף /bundle או handoff מאשר שרשור מבולגן.',
+      whyTitle: 'Reduces noisy context',
+      note: 'CCSO לא יודע למדוד "עריכה במקום שרשור", אבל זה שומר על prompt קצר וברור יותר.',
+      score: liveTurns >= 6 ? 72 : 54,
+      heroKicker: 'Prompt Hygiene',
+      heroTitle: 'עדיף לנסח מחדש מאשר להיערם',
+      heroCopy: 'ככל שהסשן נמשך, הסיכון לפרומפטים ארוכים ומבולגנים עולה. עריכה מוקדמת חוסכת עומס בהמשך.',
+    },
+    {
+      id: 'platform-modes',
+      title: 'Use expensive modes only when they are truly needed',
+      kindLabel: 'Platform-specific tip',
+      kindTone: 'platform',
+      countedLabel: 'Not measured by CCSO',
+      countedTone: 'platform',
+      statusLabel: 'Cross-tool advice',
+      statusTone: 'info',
+      copy: 'בכלים אחרים לפעמים יש מצבים כמו extended thinking, web search או connectors. הם יכולים להיות מצוינים, אבל הם לא ברירת מחדל לכל משימה ולא נספרים כאן כחיסכון.',
+      action: 'Enable heavy modes only on tasks that actually need deeper reasoning or external retrieval',
+      actionSub: 'ב-CCSO עצמו העיקרון המקביל הוא לשמור על routing חכם ולהימנע מהפעלת פיצ׳רים lossy שלא צריך.',
+      whyTitle: 'Honest separation',
+      note: 'הטיפ הזה מגיע מהמסמך, אבל נשאר מסומן כאן כ-platform-specific כדי לא ליצור מצג שווא של מדידה.',
+      score: 46,
+      heroKicker: 'Platform Specific',
+      heroTitle: 'לא כל טיפ שייך למדידה המקומית',
+      heroCopy: 'יש הרגלים טובים שחלים על כלים אחרים, אבל הדשבורד הזה לא מערבב אותם עם savings של CCSO.',
+    },
+  ];
+
+  return items.sort((a, b) => b.score - a.score);
+}
+
+function formatChartUsd(value, compact = false) {
+  const numeric = Number(value || 0);
+  const abs = Math.abs(numeric);
+
+  if (compact && abs >= 1000) {
+    return `$${(numeric / 1000).toFixed(abs >= 10000 ? 0 : 1)}k`;
+  }
+  if (abs >= 1) return `$${numeric.toFixed(2)}`;
+  if (abs >= 0.01) return `$${numeric.toFixed(3)}`;
+  return `$${numeric.toFixed(4)}`;
+}
+
+function createChartGradient(canvas, stops) {
+  const ctx = canvas.getContext('2d');
+  const height = canvas.clientHeight || 220;
+  const gradient = ctx.createLinearGradient(0, 0, 0, height);
+  stops.forEach(([offset, color]) => gradient.addColorStop(offset, color));
+  return gradient;
+}
+
+function buildChartOptions(valueFormatter) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
+    animation: {
+      duration: 650,
+      easing: 'easeOutQuart',
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(7, 17, 31, 0.94)',
+        titleColor: '#eff7ff',
+        bodyColor: '#d8e7f8',
+        borderColor: 'rgba(126, 208, 255, 0.18)',
+        borderWidth: 1,
+        displayColors: false,
+        padding: 12,
+        cornerRadius: 14,
+        titleFont: { size: 12, weight: '700' },
+        bodyFont: { size: 12, weight: '600' },
+        callbacks: {
+          label: (context) => valueFormatter(context.raw || 0, false),
+        },
+      },
+    },
+    scales: {
+      x: {
+        border: { display: false },
+        grid: { display: false },
+        ticks: {
+          color: '#88a0bf',
+          maxTicksLimit: 7,
+          font: { size: 11, weight: '600' },
+        },
+      },
+      y: {
+        beginAtZero: true,
+        border: { display: false },
+        grid: {
+          color: 'rgba(148, 175, 219, 0.08)',
+          drawTicks: false,
+        },
+        ticks: {
+          color: '#9ab2d1',
+          padding: 8,
+          font: { size: 11, weight: '600' },
+          callback: (value) => valueFormatter(value, true),
+        },
+      },
+    },
+  };
 }
 
 async function loadDaily() {
   try {
     const data = await fetch('/api/daily').then(r => r.json());
+    if (!data.length) {
+      if (costChart) { costChart.destroy(); costChart = null; }
+      if (savingsChart) { savingsChart.destroy(); savingsChart = null; }
+      return;
+    }
     const labels = data.map(d => d.date.substring(5));
-    const base = {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: '#7d8590', maxTicksLimit: 7 }, grid: { color: '#21262d' } },
-        y: { ticks: { color: '#7d8590' }, grid: { color: '#30363d' } }
-      }
-    };
+    const costCanvas = document.getElementById('costChart');
+    const savingsCanvas = document.getElementById('savingsChart');
+
+    const costFill = createChartGradient(costCanvas, [
+      [0, 'rgba(255, 141, 149, 0.88)'],
+      [0.55, 'rgba(247, 124, 136, 0.44)'],
+      [1, 'rgba(247, 124, 136, 0.12)'],
+    ]);
+    const savingsFill = createChartGradient(savingsCanvas, [
+      [0, 'rgba(96, 228, 218, 0.34)'],
+      [0.7, 'rgba(68, 214, 168, 0.14)'],
+      [1, 'rgba(68, 214, 168, 0.03)'],
+    ]);
+
     if (costChart) costChart.destroy();
-    costChart = new Chart(document.getElementById('costChart'), {
+    costChart = new Chart(costCanvas, {
       type: 'bar',
-      data: { labels, datasets: [{ data: data.map(d => d.cost), backgroundColor: '#f8514955', borderColor: '#f85149', borderWidth: 1, borderRadius: 4 }] },
-      options: { ...base }
+      data: {
+        labels,
+        datasets: [{
+          data: data.map(d => d.cost),
+          backgroundColor: costFill,
+          borderColor: 'rgba(255, 161, 170, 0.95)',
+          borderWidth: 1.2,
+          borderRadius: 10,
+          borderSkipped: false,
+          maxBarThickness: 32,
+          hoverBackgroundColor: 'rgba(255, 164, 173, 0.92)',
+        }],
+      },
+      options: buildChartOptions(formatChartUsd),
     });
     if (savingsChart) savingsChart.destroy();
-    savingsChart = new Chart(document.getElementById('savingsChart'), {
+    savingsChart = new Chart(savingsCanvas, {
       type: 'line',
-      data: { labels, datasets: [{ data: data.map(d => d.saved), borderColor: '#3fb950', backgroundColor: '#3fb95022', fill: true, tension: 0.4, pointRadius: 2 }] },
-      options: { ...base }
+      data: {
+        labels,
+        datasets: [{
+          data: data.map(d => d.saved),
+          borderColor: '#60e4da',
+          backgroundColor: savingsFill,
+          fill: true,
+          tension: 0.36,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#60e4da',
+          pointHoverBorderColor: '#08111f',
+          pointHoverBorderWidth: 2,
+          borderWidth: 2.5,
+        }],
+      },
+      options: buildChartOptions(formatChartUsd),
     });
   } catch(e) { console.error(e); }
 }
@@ -640,7 +2265,7 @@ async function loadSessions() {
     const data = await fetch('/api/sessions').then(r => r.json());
     const tbody = document.getElementById('sessionsTable');
     if (!data.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">אין סשנים עדיין</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted)">אין פעילות עדיין</td></tr>';
       return;
     }
     tbody.innerHTML = data.map(s => {
@@ -649,9 +2274,10 @@ async function loadSessions() {
       return `
       <tr>
         <td>${s.date}</td>
+        <td>${s.source || 'CLI session'}</td>
         <td>$${(s.cost||0).toFixed(4)}</td>
-        <td style="color:#3fb950">${fmtUSD(s.dollarsSaved||0)}</td>
-        <td>${fmt(s.tokensSaved)}</td>
+        <td style="color:#3fb950">${fmtUSD(s.netSavingsUsd||0)}</td>
+        <td>${fmt(s.tokensAvoided || 0)}</td>
         <td><span style="color:${modelColor};font-size:11px">${modelShort}</span></td>
         <td>${s.commands}</td>
         <td>${s.duration}</td>
@@ -662,108 +2288,251 @@ async function loadSessions() {
 }
 
 // ── Platforms ─────────────────────────────────────────────────────────────────
-const PLATFORMS = [
+const CLIENT_PLATFORM_CATALOG = [
   {
-    id: 'claude', icon: '🤖', name: 'Claude Code',
-    desc: 'ה-backend הראשי — שולח פרומפטים דרך claude --print',
-    cmd: 'claude'
+    id: 'claude',
+    icon: '🤖',
+    name: 'Claude Code',
+    supportLabel: 'Full backend',
+    dashboardGroup: 'measured-runtime',
+    dashboardGroupLabel: 'Measured runtime',
+    savingsMode: 'direct-measured',
+    savingsLabel: 'Measured savings',
+    description: 'CCSO can execute prompts through the Claude CLI, estimate spend/savings, power the dashboard chat, and manage Claude project files.',
+    limitations: 'Usage stats only cover turns that CCSO sends itself.',
+    capabilities: ['Backend execution', 'Usage stats', 'Dashboard chat', 'MCP config', 'Project rules'],
+    availability: 'not-detected',
+    availabilityLabel: 'Not detected',
   },
   {
-    id: 'cursor', icon: '🖱️', name: 'Cursor',
-    desc: 'IDE חכם — CCSO מזריק קונטקסט Git וזיכרון לפני כל prompt',
-    cmd: 'cursor'
+    id: 'cursor',
+    icon: '🖱️',
+    name: 'Cursor',
+    supportLabel: 'Project rules + MCP',
+    dashboardGroup: 'assisted-integration',
+    dashboardGroupLabel: 'Assisted, not measured',
+    savingsMode: 'assisted-unmeasured',
+    savingsLabel: 'Can help, not measured',
+    description: 'CCSO can write `.cursorrules` and Cursor MCP config.',
+    limitations: 'CCSO does not intercept Cursor chats or measure Cursor token usage.',
+    capabilities: ['Project rules', 'MCP config', 'Clipboard helper'],
+    availability: 'not-detected',
+    availabilityLabel: 'Not detected',
   },
   {
-    id: 'codex', icon: '🟢', name: 'OpenAI Codex CLI',
-    desc: 'אלטרנטיבה ל-Claude Code — backend חלופי דרך codex CLI',
-    cmd: 'codex'
+    id: 'windsurf',
+    icon: '🏄',
+    name: 'Windsurf',
+    supportLabel: 'Project rules + MCP',
+    dashboardGroup: 'assisted-integration',
+    dashboardGroupLabel: 'Assisted, not measured',
+    savingsMode: 'assisted-unmeasured',
+    savingsLabel: 'Can help, not measured',
+    description: 'CCSO can write `.windsurfrules` and Windsurf MCP config.',
+    limitations: 'CCSO does not intercept Windsurf chats or measure Windsurf token usage.',
+    capabilities: ['Project rules', 'MCP config'],
+    availability: 'not-detected',
+    availabilityLabel: 'Not detected',
   },
   {
-    id: 'windsurf', icon: '🏄', name: 'Windsurf',
-    desc: 'IDE מבוסס Codeium — תמיכה מלאה בניתוב קונטקסט',
-    cmd: 'windsurf'
+    id: 'copilot',
+    icon: '💙',
+    name: 'GitHub Copilot',
+    supportLabel: 'Instruction file only',
+    dashboardGroup: 'export-target',
+    dashboardGroupLabel: 'Instruction / export target',
+    savingsMode: 'no-runtime-savings',
+    savingsLabel: 'No runtime savings path',
+    description: 'CCSO can generate `.github/copilot-instructions.md` for Copilot-aware editors.',
+    limitations: 'No IDE control, prompt interception, or usage statistics.',
+    capabilities: ['Project instructions'],
+    availability: 'not-detected',
+    availabilityLabel: 'Not detected',
   },
   {
-    id: 'vscode', icon: '💙', name: 'VS Code',
-    desc: 'עורך הקוד הפופולרי — תמיכה דרך תוסף Claude + Cursor',
-    cmd: 'code'
+    id: 'gemini',
+    icon: '✨',
+    name: 'Gemini Code Assist',
+    supportLabel: 'Instruction file only',
+    dashboardGroup: 'export-target',
+    dashboardGroupLabel: 'Instruction / export target',
+    savingsMode: 'no-runtime-savings',
+    savingsLabel: 'No runtime savings path',
+    description: 'CCSO can generate `.ccso_instruction` text for Gemini customization.',
+    limitations: 'No live prompt wrapping, IDE control, or billing statistics.',
+    capabilities: ['Instruction text'],
+    availability: 'not-detected',
+    availabilityLabel: 'Not detected',
   },
   {
-    id: 'gemini', icon: '✨', name: 'Gemini Code Assist',
-    desc: 'כלי AI של גוגל לפיתוח קוד — extension ב-VS Code ו-JetBrains',
-    cmd: null
+    id: 'firebase-studio',
+    icon: '🔥',
+    name: 'Firebase Studio / Project IDX',
+    supportLabel: 'Project config only',
+    dashboardGroup: 'export-target',
+    dashboardGroupLabel: 'Project config target',
+    savingsMode: 'no-runtime-savings',
+    savingsLabel: 'No runtime savings path',
+    description: 'CCSO can scaffold `.idx/dev.nix` and Gemini customization text for web IDE projects.',
+    limitations: 'No local prompt interception or usage statistics.',
+    capabilities: ['Project config', 'Instruction text'],
+    availability: 'available',
+    availabilityLabel: 'Available via ccso inject',
   },
   {
-    id: 'firebase', icon: '🔥', name: 'Firebase Studio',
-    desc: 'סביבת פיתוח בדפדפן של גוגל — מזוהה דרך Firebase CLI',
-    cmd: 'firebase'
-  },
-  {
-    id: 'androidstudio', icon: '🤖', name: 'Android Studio',
-    desc: 'IDE של גוגל לאנדרואיד — כולל Gemini AI מובנה',
-    cmd: null
-  },
-  {
-    id: 'notebooklm', icon: '📒', name: 'NotebookLM',
-    desc: 'גשר ייצוא — שמירת סיכומי CCSO בפורמט NotebookLM',
-    cmd: null
+    id: 'notebooklm',
+    icon: '📒',
+    name: 'NotebookLM Bridge',
+    supportLabel: 'Companion bridge',
+    dashboardGroup: 'utility',
+    dashboardGroupLabel: 'Utility / bridge',
+    savingsMode: 'not-applicable',
+    savingsLabel: 'Not a coding runtime',
+    description: 'CCSO includes separate `ccso notebooklm ...` bridge commands.',
+    limitations: 'This is a companion utility, not an inline coding backend.',
+    capabilities: ['Bridge commands'],
+    availability: 'available',
+    availabilityLabel: 'Available in CCSO',
   },
 ];
 
-async function renderPlatforms() {
-  let detected = [];
-  try {
-    const r = await fetch('/api/platforms');
-    if (r.ok) detected = await r.json();
-  } catch {
-    detected = ['claude', 'cursor']; // fallback
+const LEGACY_PLATFORM_ID_ALIASES = {
+  firebase: 'firebase-studio',
+};
+
+function normalizeLegacyPlatformIds(ids = []) {
+  return new Set(
+    ids
+      .map(id => LEGACY_PLATFORM_ID_ALIASES[id] || id)
+      .filter(Boolean)
+      .filter(id => CLIENT_PLATFORM_CATALOG.some(platform => platform.id === id)),
+  );
+}
+
+function normalizePlatformsResponse(payload) {
+  if (!Array.isArray(payload) || payload.length === 0) return [];
+
+  if (typeof payload[0] === 'string') {
+    const detectedIds = normalizeLegacyPlatformIds(payload);
+    return CLIENT_PLATFORM_CATALOG.map((platform) => {
+      if (platform.availability === 'available') return platform;
+      const detected = detectedIds.has(platform.id);
+      return {
+        ...platform,
+        availability: detected ? 'detected' : 'not-detected',
+        availabilityLabel: detected ? 'Detected on this machine' : 'Not detected',
+      };
+    });
   }
 
-  const grid = document.getElementById('platformsGrid');
-  grid.innerHTML = PLATFORMS.map(p => {
-    const found = p.cmd === null ? false : detected.includes(p.id);
+  return payload.map((platform) => ({
+    id: platform.id || 'unknown',
+    icon: platform.icon || '🧩',
+    name: platform.name || platform.id || 'Unknown platform',
+    supportLabel: platform.supportLabel || 'Support level unavailable',
+    dashboardGroup: platform.dashboardGroup || 'export-target',
+    dashboardGroupLabel: platform.dashboardGroupLabel || 'Support group unavailable',
+    savingsMode: platform.savingsMode || 'no-runtime-savings',
+    savingsLabel: platform.savingsLabel || 'Savings mode unavailable',
+    description: platform.description || 'No description available.',
+    limitations: platform.limitations || 'No limitations listed.',
+    capabilities: Array.isArray(platform.capabilities) ? platform.capabilities : [],
+    availability: platform.availability || 'available',
+    availabilityLabel: platform.availabilityLabel || 'Available',
+  }));
+}
+
+async function renderPlatforms() {
+  let platforms = [];
+  try {
+    const r = await fetch('/api/platforms');
+    if (r.ok) platforms = normalizePlatformsResponse(await r.json());
+  } catch {
+    platforms = [];
+  }
+
+  if (!platforms.length) {
+    const empty = '<div class="platform-empty">לא נטענו נתוני פלטפורמות כרגע. נסה לרענן את הדשבורד.</div>';
+    document.getElementById('platformsMeasuredGrid').innerHTML = empty;
+    document.getElementById('platformsAssistedGrid').innerHTML = empty;
+    document.getElementById('platformsExportsGrid').innerHTML = empty;
+    document.getElementById('platformsUtilitiesGrid').innerHTML = empty;
+    return;
+  }
+
+  const groups = {
+    'measured-runtime': [],
+    'assisted-integration': [],
+    'export-target': [],
+    utility: [],
+  };
+
+  for (const platform of platforms) {
+    const group = groups[platform.dashboardGroup] ? platform.dashboardGroup : 'export-target';
+    groups[group].push(platform);
+  }
+
+  renderPlatformGroup('platformsMeasuredGrid', groups['measured-runtime'], 'אין כרגע runtime מדיד מעבר למסלול Claude.');
+  renderPlatformGroup('platformsAssistedGrid', groups['assisted-integration'], 'אין כרגע אינטגרציות מסייעות להצגה.');
+  renderPlatformGroup('platformsExportsGrid', groups['export-target'], 'אין כרגע יעדי export/config להצגה.');
+  renderPlatformGroup('platformsUtilitiesGrid', groups.utility, 'אין כרגע utilities להצגה.');
+}
+
+function renderPlatformGroup(targetId, platforms, emptyMessage) {
+  const grid = document.getElementById(targetId);
+  if (!grid) return;
+
+  if (!platforms.length) {
+    grid.innerHTML = `<div class="platform-empty" style="grid-column:1/-1">${emptyMessage}</div>`;
+    return;
+  }
+
+  grid.innerHTML = platforms.map((platform) => {
+    const statusClass = platform.availability || 'available';
+    const savingsTone = getPlatformSavingsTone(platform.savingsMode);
     return `
-      <div class="platform-card ${found ? 'detected' : 'not-detected'}">
-        <div class="p-icon">${p.icon}</div>
-        <div class="p-name">${p.name}</div>
-        <div class="p-status">${found ? '✓ זוהה' : '✗ לא נמצא'}</div>
-        <div class="p-desc">${p.desc}</div>
+      <div class="platform-card ${statusClass}">
+        <div class="p-icon">${platform.icon}</div>
+        <div class="p-name">${platform.name}</div>
+        <div class="p-meta">
+          <div class="p-status">${platform.availabilityLabel}</div>
+          <div class="p-support">${platform.supportLabel}</div>
+          <div class="p-savings ${savingsTone.className}">${platform.savingsLabel}</div>
+        </div>
+        <div class="p-desc">${platform.description}</div>
+        <div class="p-limit">${platform.limitations}</div>
+        <div class="p-caps">
+          ${(platform.capabilities || []).map(cap => `<span class="p-cap">${cap}</span>`).join('')}
+        </div>
       </div>`;
   }).join('');
 }
 
+function getPlatformSavingsTone(mode = '') {
+  switch (mode) {
+    case 'direct-measured':
+      return { className: 'measured' };
+    case 'assisted-unmeasured':
+      return { className: 'assisted' };
+    case 'not-applicable':
+      return { className: 'utility' };
+    case 'no-runtime-savings':
+    default:
+      return { className: 'none' };
+  }
+}
+
 // ── Features ──────────────────────────────────────────────────────────────────
-const FEATURES = [
-  { icon: '🌐', title: 'תרגום עברית → אנגלית', type: 'auto',
-    desc: 'כל פרומפט בעברית מתורגם אוטומטית לאנגלית לפני שליחה לקלוד. חוסך ~30% טוקנים כי אנגלית קצרה יותר.' },
-  { icon: '🧠', title: 'ניתוב מודל חכם', type: 'auto',
-    desc: 'שאלות פשוטות → Haiku (10× זול), קוד/ארכיטקטורה → Opus, ברירת מחדל → Sonnet. חוסך עד 90% עלות.' },
-  { icon: '📦', title: 'כיווץ קוד', type: 'auto',
-    desc: 'כשמדביקים קוד בפרומפט, CCSO מסיר הערות ושורות ריקות. מקטין את הקוד ב-20-40% בממוצע.' },
-  { icon: '🔑', title: 'סורק מפתחות API', type: 'auto',
-    desc: 'לפני שליחה, סורק את הפרומפט לאיתור API keys, סיסמאות, ומפתחות AWS/OpenAI. מזהיר לפני שיגיע לקלוד.' },
-  { icon: '🌿', title: 'Git Context אוטומטי', type: 'auto',
-    desc: 'כשכותבים "תקן", "באג", "commit" — CCSO מוסיף git status + git diff אוטומטית לפרומפט.' },
-  { icon: '✂️', title: 'ניקוי פוליטנס', type: 'auto',
-    desc: 'מסיר "אנא", "בבקשה", "תודה" מהפרומפט. כל טוקן חסך = כסף שנחסך.' },
-  { icon: '🧩', title: 'זיכרון חוצה-סשן', type: 'manual',
-    desc: 'שמור עובדות על הפרויקט שקלוד יזכור בסשנים הבאים.\n/memory add "endpoint הוא /api/users"' },
-  { icon: '📜', title: 'היסטוריית פרומפטים', type: 'manual',
-    desc: 'כל פרומפט נשמר ואפשר לחפש בו.\n/history | /history search "react"' },
-  { icon: '📝', title: '8 תבניות מוכנות', type: 'manual',
-    desc: 'תבניות מוכנות לבאגים, code review, refactor, טסטים, תיעוד, אבטחה ועוד.\n/template | /template bug' },
-  { icon: '📄', title: 'חיתוך קבצים גדולים', type: 'auto',
-    desc: 'כשמדביקים קובץ עם יותר מ-300 שורות, CCSO שומר 150 ראשונות + 50 אחרונות. חוסך אלפי טוקנים.' },
-  { icon: '🔁', title: 'הסרת תוכן כפול', type: 'auto',
-    desc: 'מזהה ומסיר שורות/משפטים כפולים בפרומפט ארוך. שכיח בהדבקת לוגים או קוד.' },
-  { icon: '📏', title: 'הגבלת אורך תגובה', type: 'auto',
-    desc: 'לשאלות פשוטות ("מה זה X", "האם Y") מוסיף אוטומטית הגבלה — "ענה ב-2 משפטים". חוסך 100-150 טוקני פלט.' },
-  { icon: '🔄', title: 'Handoff אוטומטי', type: 'auto',
-    desc: 'כשמגיעים לסף עלות/פקודות, CCSO שומר סיכום ומנקה את הסשן אוטומטית.' },
-  { icon: '⏰', title: 'TimeGuard', type: 'auto',
-    desc: 'מעקב אחרי זמן הסשן ומתריע כשרצים יותר מ-2 שעות ברצף.' },
-  { icon: '🎛️', title: 'Dashboard בדפדפן', type: 'manual',
-    desc: 'מסך זה! מציג עלויות, חיסכון לפי פיצ\'ר, פלטפורמות ויכולת שליחת פרומפטים.\nccso --dashboard' },
+const FALLBACK_FEATURES = [
+  { id: 'model-routing', icon: '🧠', title: 'ניתוב מודל חכם', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'להשאיר פעיל', recommendationTone: 'recommended', metricKey: 'model-routing', dashboardCategory: 'measured-savings', measurementLabel: 'נמדד בדשבורד', measurementTone: 'measured', desc: 'מעביר שאלות קלות ל-Haiku ומשימות מורכבות ל-Opus כדי לחסוך עלות בלי לקצר את הפרומפט עצמו.' },
+  { id: 'trim-log', icon: '✂️', title: 'קיצוץ לוגים ארוכים', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'זהיר אבל שימושי', recommendationTone: 'caution', metricKey: 'trim-log', dashboardCategory: 'measured-savings', measurementLabel: 'נמדד בדשבורד', measurementTone: 'measured', desc: 'מחלץ שורות שגיאה ו-stack trace רלוונטיים, ושומר גם tail קצר במקום tail עיוור בלבד.' },
+  { id: 'translate', icon: '🌐', title: 'תרגום עברית → אנגלית', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'כבוי', enabled: false, recommendationLabel: 'כבוי כברירת מחדל', recommendationTone: 'optional', metricKey: 'translate', dashboardCategory: 'measured-savings', measurementLabel: 'נמדד רק אם הופעל', measurementTone: 'measured', desc: 'זמין רק כ-opt-in כי תרגום עלול לשנות ניסוח ומשמעות.' },
+  { id: 'code-compress', icon: '📦', title: 'כיווץ קוד', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'כבוי', enabled: false, recommendationLabel: 'כבוי כברירת מחדל', recommendationTone: 'optional', metricKey: 'code-compress', dashboardCategory: 'measured-savings', measurementLabel: 'נמדד רק אם הופעל', measurementTone: 'measured', desc: 'יכול לחסוך טוקנים, אבל גם למחוק comments ו-debug hints חשובים.' },
+  { id: 'cache', icon: '💾', title: 'מטמון תגובות', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'להשאיר פעיל', recommendationTone: 'recommended', metricKey: 'cache', dashboardCategory: 'measured-savings', measurementLabel: 'נמדד בדשבורד', measurementTone: 'measured', desc: 'אותו prompt עם אותו model לא צריך להישלח שוב, גם אם יש הבדלי whitespace שמרניים בלבד.' },
+  { id: 'memory', icon: '🧩', title: 'זיכרון חוצה-סשן', type: 'manual', typeLabel: 'ידני', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'להשאיר פעיל לפי צורך', recommendationTone: 'manual', dashboardCategory: 'estimated-impact', measurementLabel: 'משפר הקשר, לא נספר ישירות', measurementTone: 'estimated', desc: 'מזריק רק עובדות רלוונטיות תחת תקציב טוקנים, במקום לדחוף את כל הזיכרון לכל פרומפט.' },
+  { id: 'briefs', icon: '📚', title: 'Reusable File Briefs', type: 'manual', typeLabel: 'ידני', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'מומלץ לקבצים חוזרים', recommendationTone: 'manual', dashboardCategory: 'estimated-impact', measurementLabel: 'Brief reuse, לא נספר ישירות', measurementTone: 'estimated', desc: 'שומר brief קצר לקובץ או מסמך ומזריק אותו רק כשהקובץ מוזכר שוב.' },
+  { id: 'prompt-bundler', icon: '📦', title: 'Prompt Bundler', type: 'manual', typeLabel: 'ידני', stateLabel: 'זמין', enabled: true, recommendationLabel: 'מומלץ כשיש כמה סעיפים', recommendationTone: 'manual', dashboardCategory: 'workflow-quality', measurementLabel: 'כלי workflow ידני', measurementTone: 'advice', desc: 'הפקודה `/bundle` מאגדת כמה משימות לבקשה אחת מסודרת.' },
+  { id: 'session-reset-advisor', icon: '🧭', title: 'Session Reset Advisor', type: 'auto', typeLabel: 'אוטומטי', stateLabel: 'פעיל', enabled: true, recommendationLabel: 'להשאיר פעיל', recommendationTone: 'recommended', dashboardCategory: 'quota-hygiene', measurementLabel: 'עצת reset, לא חיסכון ישיר', measurementTone: 'quota', desc: 'ממליץ על handoff או reset כשהסשן מתחיל להתנפח.' },
 ];
 
 // Maps feature keys from log to feature titles
@@ -782,24 +2551,78 @@ const FEATURE_KEY_MAP = {
 async function renderFeatures() {
   // Load live session + historical feature savings
   let featureSavings = {};
+  let featureCatalog = FALLBACK_FEATURES;
+  let optimizerSettings = {};
   try {
     const [hist, live] = await Promise.all([
       fetch('/api/stats').then(r => r.json()),
       fetch('/api/live').then(r => r.json()).catch(() => ({})),
     ]);
+    featureCatalog = hist.featureCatalog || FALLBACK_FEATURES;
+    optimizerSettings = hist.optimizerSettings || {};
     const hf = hist.featureSavings || {};
     const lf = (live.active && live.featureSavings) ? live.featureSavings : {};
     for (const k of Object.keys(FEATURE_KEY_MAP)) {
-      featureSavings[k] = (hf[k] || 0) + (lf[k] || 0);
+      const h = hf[k] || {};
+      const l = lf[k] || {};
+      featureSavings[k] = {
+        inputTokens: (h.inputTokens || 0) + (l.inputTokens || 0),
+        outputTokens: (h.outputTokens || 0) + (l.outputTokens || 0),
+        totalTokens:
+          (h.totalTokens || ((h.inputTokens || 0) + (h.outputTokens || 0))) +
+          (l.totalTokens || ((l.inputTokens || 0) + (l.outputTokens || 0))),
+        usd: (h.usd || 0) + (l.usd || 0),
+      };
     }
   } catch {}
 
-  document.getElementById('featuresGrid').innerHTML = FEATURES.map(f => {
-    // Find matching feature key
-    const key = Object.keys(FEATURE_KEY_MAP).find(k => FEATURE_KEY_MAP[k].includes(f.icon));
-    const saved = key ? (featureSavings[key] || 0) : 0;
-    const savingsBadge = saved > 0
-      ? `<span style="margin-right:8px;background:#0d2d1a;color:#22c55e;padding:2px 8px;border-radius:10px;font-size:11px">💰 ${saved.toLocaleString()} טוקנים נחסכו</span>`
+  renderOptimizerSnapshot(optimizerSettings, {}, 'featureProfileSnapshot');
+
+  const groups = {
+    'measured-savings': [],
+    'estimated-impact': [],
+    'workflow-quality': [],
+    'quota-hygiene': [],
+  };
+
+  for (const feature of featureCatalog) {
+    const key = groups[feature.dashboardCategory] ? feature.dashboardCategory : 'workflow-quality';
+    groups[key].push(feature);
+  }
+
+  renderFeatureGroup('featuresMeasuredGrid', groups['measured-savings'], featureSavings, optimizerSettings, "אין כרגע פיצ'רים מדידים להצגה.");
+  renderFeatureGroup('featuresEstimatedGrid', groups['estimated-impact'], featureSavings, optimizerSettings, "אין כרגע פיצ'רי reuse להצגה.");
+  renderFeatureGroup('featuresWorkflowGrid', groups['workflow-quality'], featureSavings, optimizerSettings, "אין כרגע פיצ'רי workflow להצגה.");
+  renderFeatureGroup('featuresQuotaGrid', groups['quota-hygiene'], featureSavings, optimizerSettings, "אין כרגע פיצ'רי session hygiene להצגה.");
+}
+
+function renderFeatureGroup(targetId, features, featureSavings, optimizerSettings, emptyMessage) {
+  const root = document.getElementById(targetId);
+  if (!root) return;
+  if (!features.length) {
+    root.innerHTML = `<div class="platform-empty" style="grid-column:1/-1">${emptyMessage}</div>`;
+    return;
+  }
+
+  root.innerHTML = features.map((f) => {
+    const stats = f.metricKey ? (featureSavings[f.metricKey] || {}) : null;
+    const totalTokens = stats?.totalTokens || 0;
+    const usd = stats?.usd || 0;
+    const runtimeChips = getFeatureRuntimeChips(f, optimizerSettings);
+    const savingsBadge = stats && (totalTokens > 0 || usd !== 0)
+      ? `<span style="margin-right:8px;background:#0d2d1a;color:${usd < 0 ? '#f85149' : '#22c55e'};padding:2px 8px;border-radius:10px;font-size:11px">${usd < 0 ? '📈' : '💰'} ${fmtUSD(Math.abs(usd))} ${usd < 0 ? 'נוספו' : 'נחסכו'}</span>`
+      : '';
+    const tokenBadge = stats && totalTokens > 0
+      ? `<span style="margin-right:8px;background:#111d2f;color:#58a6ff;padding:2px 8px;border-radius:10px;font-size:11px">🧮 ${fmt(totalTokens)} טוקנים</span>`
+      : '';
+    const stateBadge = f.stateLabel
+      ? `<span class="f-badge ${f.enabled ? 'f-on' : 'f-off'}">${f.stateLabel}</span>`
+      : '';
+    const recommendationBadge = f.recommendationLabel
+      ? `<span class="f-badge f-${f.recommendationTone || 'manual'}">${f.recommendationLabel}</span>`
+      : '';
+    const measurementBadge = f.measurementLabel
+      ? `<span class="f-badge f-${f.measurementTone || 'advice'}">${f.measurementLabel}</span>`
       : '';
     return `
     <div class="feature-item">
@@ -808,14 +2631,86 @@ async function renderFeatures() {
         <div class="f-title">${f.title}</div>
         <div class="f-desc">${f.desc.replace(/\n/g, '<br>')}</div>
         <div style="margin-top:6px">
-          <div class="f-badge ${f.type === 'auto' ? 'f-auto' : 'f-manual'}">
-            ${f.type === 'auto' ? 'אוטומטי' : 'ידני'}
-          </div>
+          <div class="f-badge ${f.type === 'auto' ? 'f-auto' : 'f-manual'}">${f.typeLabel || (f.type === 'auto' ? 'אוטומטי' : 'ידני')}</div>
+          ${stateBadge}
+          ${recommendationBadge}
+          ${measurementBadge}
           ${savingsBadge}
+          ${tokenBadge}
         </div>
+        ${runtimeChips.length ? `<div class="f-extra" style="margin-top:10px">${runtimeChips.map((chip) => `<span class="f-chip ${chip.tone || 'info'}">${chip.label}</span>`).join('')}</div>` : ''}
       </div>
     </div>`;
   }).join('');
+}
+
+function getFeatureRuntimeChips(feature, settings = {}) {
+  switch (feature.id) {
+    case 'cache':
+      return [
+        { label: settings.promptCache?.enabled ? `TTL ${settings.promptCache.ttlHours}h` : 'cache off', tone: settings.promptCache?.enabled ? 'good' : 'bad' },
+        { label: 'Whitespace-normalized key', tone: 'info' },
+        { label: 'נמדד כחיסכון ישיר', tone: 'good' },
+      ];
+    case 'memory':
+      return [
+        { label: settings.memory?.enabled ? `Budget ${fmt(settings.memory.tokenBudget)} tokens` : 'memory off', tone: settings.memory?.enabled ? 'info' : 'bad' },
+        { label: settings.memory?.enabled ? `Max ${settings.memory.maxFacts} facts` : 'disabled', tone: settings.memory?.enabled ? 'info' : 'bad' },
+        { label: 'Relevant only', tone: 'good' },
+        { label: 'לא נספר כחיסכון ישיר', tone: 'warn' },
+      ];
+    case 'briefs':
+      return [
+        { label: settings.briefs?.enabled ? `Budget ${fmt(settings.briefs.tokenBudget)} tokens` : 'briefs off', tone: settings.briefs?.enabled ? 'info' : 'bad' },
+        { label: 'Saved per file', tone: 'good' },
+        { label: 'מופעל רק כשיש brief שמור והקובץ מוזכר', tone: 'info' },
+      ];
+    case 'session-reset-advisor':
+      return [
+        { label: settings.resetAdvisor?.enabled ? `${settings.resetAdvisor.turns} turns` : 'advisor off', tone: settings.resetAdvisor?.enabled ? 'good' : 'bad' },
+        { label: settings.resetAdvisor?.enabled ? `${settings.resetAdvisor.minutes} min` : 'disabled', tone: settings.resetAdvisor?.enabled ? 'info' : 'bad' },
+        { label: 'Session hygiene בלבד', tone: 'warn' },
+      ];
+    case 'prompt-bundler':
+      return [
+        { label: 'פקודה: /bundle', tone: 'good' },
+        { label: 'Manual, not auto-rewritten', tone: 'info' },
+        { label: 'לא נספר כחיסכון קשיח', tone: 'warn' },
+      ];
+    case 'trim-log':
+      return [
+        { label: 'Error-focused extraction', tone: 'good' },
+        { label: 'Recent tail fallback', tone: 'info' },
+        { label: 'מדוד בדשבורד', tone: 'good' },
+      ];
+    case 'model-routing':
+      return [
+        { label: settings.routing?.enabled ? 'Haiku / Sonnet / Opus auto' : 'routing off', tone: settings.routing?.enabled ? 'good' : 'bad' },
+        { label: 'מושווה מול Sonnet baseline', tone: 'info' },
+      ];
+    case 'translate':
+      return [
+        { label: settings.translate?.enabled ? 'Opt-in enabled' : 'כבוי כברירת מחדל', tone: settings.translate?.enabled ? 'warn' : 'good' },
+      ];
+    case 'output-hint':
+      return [
+        { label: settings.responseHints?.enabled ? 'enabled' : 'כבוי כברירת מחדל', tone: settings.responseHints?.enabled ? 'warn' : 'good' },
+      ];
+    case 'truncate':
+      return [
+        { label: settings.truncateLargePastes?.enabled ? 'enabled' : 'כבוי כברירת מחדל', tone: settings.truncateLargePastes?.enabled ? 'warn' : 'good' },
+      ];
+    case 'dedupe':
+      return [
+        { label: settings.dedupeLongInput?.enabled ? 'enabled' : 'כבוי כברירת מחדל', tone: settings.dedupeLongInput?.enabled ? 'warn' : 'good' },
+      ];
+    case 'code-compress':
+      return [
+        { label: settings.codeCompression?.enabled ? 'enabled' : 'כבוי כברירת מחדל', tone: settings.codeCompression?.enabled ? 'warn' : 'good' },
+      ];
+    default:
+      return [];
+  }
 }
 
 // ── Chat ──────────────────────────────────────────────────────────────────────
@@ -826,7 +2721,35 @@ const sendBtn      = document.getElementById('sendBtn');
 // load backend name
 fetch('/api/stats').then(r => r.json()).then(d => {
   if (d.backend) document.getElementById('chatBackend').textContent = d.backend;
+  syncChatState(d);
 }).catch(() => {});
+
+function syncChatState(stats = {}) {
+  const stateMap = stats.featureStates || {};
+  const translate = stateMap.translate;
+  const routing = stateMap['model-routing'];
+  const chatSupported = stats.chatSupported !== false;
+
+  const translateEl = document.getElementById('chatTranslate');
+  const routingEl = document.getElementById('chatRouting');
+
+  if (translateEl) {
+    translateEl.textContent = translate?.enabled ? 'פעיל' : 'כבוי';
+    translateEl.style.color = translate?.enabled ? 'var(--green)' : 'var(--muted)';
+  }
+  if (routingEl) {
+    routingEl.textContent = routing?.enabled ? 'פעיל' : 'כבוי';
+    routingEl.style.color = routing?.enabled ? 'var(--green)' : 'var(--muted)';
+  }
+
+  if (chatInput && sendBtn) {
+    chatInput.disabled = !chatSupported;
+    sendBtn.disabled = !chatSupported;
+    chatInput.placeholder = chatSupported
+      ? 'כתוב פרומפט בעברית או אנגלית... (Enter = שלח, Shift+Enter = שורה חדשה)'
+      : 'Dashboard chat זמין כרגע רק כשה-Backend הוא Claude';
+  }
+}
 
 chatInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendPrompt(); }
@@ -870,10 +2793,18 @@ async function sendPrompt() {
     if (data.warnings?.length) {
       data.warnings.forEach(w => appendMsg('system', '⚠️ ' + w));
     }
-    if (data.model) {
-      appendMsg('system', `🤖 מודל: ${data.model} | 🌐 תורגם: ${data.translated ? 'כן' : 'לא'}`);
+    const systemBits = [];
+    if (data.model) systemBits.push(`מודל: ${data.model}`);
+    if (typeof data.translated === 'boolean') systemBits.push(`תרגום: ${data.translated ? 'כן' : 'לא'}`);
+    if (data.cacheHit) systemBits.push('מטמון: hit');
+    if (systemBits.length) {
+      appendMsg('system', '🤖 ' + systemBits.join(' | '));
+    }
+    if (data.optimizations?.length) {
+      appendMsg('system', '🪄 אופטימיזציות: ' + data.optimizations.join(' • '));
     }
     appendMsg('assistant', data.response || '(אין תגובה)');
+    await Promise.all([loadStats(), loadDaily(), loadSessions(), loadFeatures()]);
   } catch(e) {
     document.getElementById(typingId)?.remove();
     appendMsg('error', '❌ שגיאה: ' + e.message + '\n\nודא ש-ccso --dashboard פועל עם claude מחובר.');
@@ -909,6 +2840,12 @@ function fmtUSD(n) {
   if (n >= 0.0001)  return '$' + n.toFixed(6);
   if (n > 0)        return '$' + n.toFixed(7);
   return '$0.00';
+}
+
+function fmtPercent(n) {
+  if (!Number.isFinite(n)) return '—';
+  const sign = n > 0 ? '+' : '';
+  return `${sign}${n.toFixed(1)}%`;
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────

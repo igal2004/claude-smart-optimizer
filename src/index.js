@@ -9,6 +9,8 @@
  *   /status               — show cost, commands, time
  *   /history [search <q>] — show prompt history
  *   /memory [add|list|clear|global] — manage cross-session memory
+ *   /brief [list|save|show|clear] — manage reusable file briefs
+ *   /bundle <items>       — bundle multiple tasks into one structured prompt
  *   /template [name]      — show/use a prompt template
  *   /exit                 — exit CCSO
  */
@@ -23,8 +25,12 @@ import { PromptCache } from './core/cache.js';
 import { Memory }      from './core/memory.js';
 import { PromptHistory } from './core/prompt-history.js';
 import { handleTemplateCommand } from './core/templates.js';
+import { ProjectBriefs } from './core/briefs.js';
+import { handleBundleCommand } from './core/prompt-bundler.js';
 import { loadConfig }  from './core/config.js';
 import { printBanner, printStatus } from './ui/display.js';
+import { countTokens } from './core/token-utils.js';
+import { ensureDashboardServer, openDashboardBrowser } from './dashboard/control.js';
 
 const config         = loadConfig();
 const interceptor    = new Interceptor(config);
@@ -33,7 +39,8 @@ const timeGuard      = new TimeGuard(config);
 const modelRouter    = new ModelRouter(config);
 const promptCache    = new PromptCache(config);
 const memory         = new Memory(config);
-const history        = new PromptHistory();
+const briefs         = new ProjectBriefs(config);
+const history        = new PromptHistory(config);
 
 async function main() {
   printBanner();
@@ -41,8 +48,8 @@ async function main() {
   const timeWarning = timeGuard.check();
   if (timeWarning) console.log(timeWarning);
 
-  const memCtx = memory.buildContextPrefix();
-  if (memCtx) {
+  const initialMemCtx = memory.buildContextPrefix();
+  if (initialMemCtx) {
     console.log('  \x1b[2m[CCSO] זיכרון פרויקט נטען אוטומטית\x1b[0m');
   }
 
@@ -61,6 +68,7 @@ async function main() {
   rl.on('line', async (rawInput) => {
     const input = rawInput.trim();
     if (!input) { rl.prompt(); return; }
+    let dispatchInput = input;
 
     // ── Built-in /commands ──────────────────────────────────────────────────
 
@@ -117,6 +125,25 @@ async function main() {
       return;
     }
 
+    // Briefs
+    const briefResult = briefs.handleCommand(input);
+    if (briefResult.handled) {
+      console.log(briefResult.message);
+      rl.prompt();
+      return;
+    }
+
+    // Prompt bundling
+    const bundleResult = handleBundleCommand(input);
+    if (bundleResult.handled) {
+      console.log(bundleResult.message);
+      if (!bundleResult.dispatch) {
+        rl.prompt();
+        return;
+      }
+      dispatchInput = bundleResult.prompt;
+    }
+
     // Templates
     const tplResult = handleTemplateCommand(input);
     if (tplResult.handled) {
@@ -132,13 +159,25 @@ async function main() {
     // ── Process & dispatch ──────────────────────────────────────────────────
 
     // Save to history
-    history.add(input);
+    history.add(dispatchInput);
 
     // Process through interceptor pipeline
-    const { text: processed, tokensSaved, savings: savingsBreakdown } = await interceptor.processWithStats(input);
+    const {
+      text: processed,
+      savings: savingsBreakdown,
+    } = await interceptor.processWithStats(dispatchInput);
 
     // Inject memory context
-    const finalPrompt = memCtx + processed;
+    const briefCtx = briefs.getContextForQuery(processed);
+    const memCtx = memory.buildContextPrefix(processed);
+    if (briefCtx.matches.length) {
+      console.log(`\n  \x1b[2m[CCSO] 📚 brief נטען עבור: ${briefCtx.matches.join(', ')}\x1b[0m`);
+    }
+    if (briefCtx.stale.length) {
+      console.log(`\n  \x1b[33m[CCSO] briefs מיושנים דולגו: ${briefCtx.stale.join(', ')}\x1b[0m`);
+    }
+    const finalPrompt = memCtx + briefCtx.prefix + processed;
+    const promptTokens = countTokens(finalPrompt);
 
     // Smart model routing
     const route = modelRouter.route(processed);
@@ -155,17 +194,24 @@ async function main() {
     // Check response cache
     const cached = promptCache.get(finalPrompt, route.model);
     if (cached) {
-      const cachedTokens = Math.ceil(cached.response.length / 4);
-      console.log(`\n  \x1b[2m[CCSO] 💾 תגובה מהמטמון (חסכנו ~${cachedTokens} טוקנים)\x1b[0m`);
+      const outputTokens = countTokens(cached.response);
+      console.log(`\n  \x1b[2m[CCSO] 💾 תגובה מהמטמון (חסכנו ~${outputTokens + promptTokens} טוקנים)\x1b[0m`);
       process.stdout.write(cached.response + '\n');
       contextMonitor.trackCommand();
-      contextMonitor.trackCacheHit(cachedTokens);
+      contextMonitor.trackTurn({
+        promptTokens,
+        outputTokens,
+        model: route.model,
+        savingsBreakdown,
+        cacheHit: true,
+      });
+      printResetAdviceIfNeeded(contextMonitor);
       rl.prompt();
       return;
     }
 
     // Run backend
-    runBackend(backend, finalPrompt, route.args, contextMonitor, tokensSaved, route.model, savingsBreakdown, (response) => {
+    runBackend(backend, finalPrompt, route.args, contextMonitor, promptTokens, route.model, savingsBreakdown, (response) => {
       promptCache.set(finalPrompt, response, route.model || 'sonnet');
     });
     rl.prompt();
@@ -184,7 +230,7 @@ async function main() {
   });
 }
 
-function runBackend(backend, prompt, modelArgs = [], monitor, tokensSaved = 0, model = null, savingsBreakdown = [], onComplete = null) {
+function runBackend(backend, prompt, modelArgs = [], monitor, promptTokens = 0, model = null, savingsBreakdown = [], onComplete = null) {
   const args = [...modelArgs, '--print', prompt];
   const child = spawn(backend, args, { stdio: ['ignore', 'pipe', 'pipe'] });
   monitor.trackCommand();
@@ -194,10 +240,6 @@ function runBackend(backend, prompt, modelArgs = [], monitor, tokensSaved = 0, m
     const str = data.toString();
     process.stdout.write(str);
     fullResponse += str;
-    monitor.trackOutput(str, tokensSaved, model, savingsBreakdown);
-    tokensSaved = 0;
-    model = null;
-    savingsBreakdown = [];
   });
 
   child.stderr.on('data', (data) => {
@@ -205,6 +247,15 @@ function runBackend(backend, prompt, modelArgs = [], monitor, tokensSaved = 0, m
   });
 
   child.on('close', () => {
+    if (fullResponse.trim()) {
+      monitor.trackTurn({
+        promptTokens,
+        outputTokens: countTokens(fullResponse),
+        model,
+        savingsBreakdown,
+      });
+      printResetAdviceIfNeeded(monitor);
+    }
     if (onComplete && fullResponse.trim()) onComplete(fullResponse.trim());
   });
 
@@ -214,6 +265,13 @@ function runBackend(backend, prompt, modelArgs = [], monitor, tokensSaved = 0, m
       console.error(`   הרץ: ccso --config  לשינוי ה-Backend.\n`);
     }
   });
+}
+
+function printResetAdviceIfNeeded(monitor) {
+  const advice = monitor.consumeResetAdviceNotice();
+  if (!advice) return;
+  console.log(`\n  \x1b[33m[CCSO] 🧭 ${advice.label}: ${advice.reasons.join(' · ')}\x1b[0m`);
+  console.log(`  \x1b[2m[CCSO] ${advice.suggestion}\x1b[0m`);
 }
 
 async function runHandoff(backend) {
@@ -243,21 +301,14 @@ async function runHandoff(backend) {
 }
 
 async function openDashboard() {
-  const serverPath = new URL('./dashboard/server.js', import.meta.url).pathname;
   console.log('\n🌐 [CCSO] פותח דשבורד...');
-  const child = spawn(process.execPath, [serverPath], {
-    detached: true,
-    stdio:    'ignore',
-  });
-  child.unref();
-  setTimeout(() => {
-    const url    = 'http://localhost:3847';
-    const opener = process.platform === 'darwin' ? 'open'
-                 : process.platform === 'win32'  ? 'start'
-                 : 'xdg-open';
-    spawn(opener, [url], { detached: true, stdio: 'ignore' }).unref();
-    console.log(`  ✅ דשבורד: ${url}\n`);
-  }, 1000);
+  const { url, ready } = await ensureDashboardServer({ attached: false });
+  if (!ready) {
+    console.log('  ❌ לא הצלחתי להרים את שרת הדשבורד.\n');
+    return;
+  }
+  openDashboardBrowser(url);
+  console.log(`  ✅ דשבורד: ${url}\n`);
 }
 
 main().catch(console.error);

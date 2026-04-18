@@ -20,7 +20,7 @@ export function printBanner() {
   console.log(c.cyan(c.bold('  ║   v3.0.0  —  חוסך טוקנים בשקט       ║')));
   console.log(c.cyan(c.bold('  ╚══════════════════════════════════════╝')));
   console.log('');
-  console.log(c.dim('  פקודות מובנות: /handoff  /status  /exit'));
+  console.log(c.dim('  פקודות מובנות: /handoff  /status  /bundle  /brief  /exit'));
   console.log('');
 }
 
@@ -33,9 +33,14 @@ export function printStatus(monitor) {
   console.log(c.bold('  ── סטטוס סשן ──────────────────────────'));
   console.log(`  💰 עלות:    $${s.cost} / $${s.costThreshold}  ${color(bar)} ${s.usedPercent}%`);
   console.log(`  📨 פקודות:  ${s.commands} / ${s.commandThreshold}`);
+  console.log(`  🔁 turns:   ${s.turns}`);
   console.log(`  ⏱️  זמן:     ${s.elapsedMinutes} דקות`);
   if (s.usedPercent >= 80) {
     console.log(c.yellow(`  ⚠️  קרוב לסף — Handoff אוטומטי בקרוב`));
+  }
+  if (s.resetAdvice?.recommended) {
+    const adviceColor = s.resetAdvice.level === 'reset-soon' ? c.yellow : c.dim;
+    console.log(adviceColor(`  🧭 ${s.resetAdvice.label}: ${s.resetAdvice.reasons.join(' · ')}`));
   }
   console.log('');
 }

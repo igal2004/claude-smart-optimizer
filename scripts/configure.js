@@ -2,7 +2,7 @@
 
 /**
  * CCSO Interactive Configuration
- * Run with: cc --config
+ * Run with: ccso --config
  */
 
 import * as readline from 'readline';
@@ -23,6 +23,13 @@ function ask(rl, question, current) {
   );
 }
 
+function parseBoolean(value, fallback) {
+  const normalized = String(value).trim().toLowerCase();
+  if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'n', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
 async function main() {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
@@ -30,23 +37,43 @@ async function main() {
   console.log(c.cyan(c.bold('  ── הגדרות CCSO ─────────────────────────')));
   console.log('  (לחץ Enter לשמור את הערך הנוכחי)\n');
 
-  const backend = await ask(rl, 'Backend (claude/codex)', config.get('backend'));
+  const backend = await ask(rl, 'פקודת Backend (Claude מומלץ)', config.get('backend'));
   config.set('backend', backend);
 
-  const translate = await ask(rl, 'תרגום עברית לאנגלית (true/false)', config.get('translate'));
-  config.set('translate', translate === 'true');
+  console.log(c.bold('\n  חיסכון ודיוק:\n'));
+  for (const [key, label] of [
+    ['smartRouting', 'ניתוב מודל חכם (true/false)'],
+    ['stripPoliteness', 'הסרת נימוסים (true/false)'],
+    ['resolvePaths', 'המרת נתיבים מוחלטים (true/false)'],
+    ['trimLogs', 'קיצוץ לוגים ארוכים (true/false)'],
+    ['secretScanner', 'סורק סודות / API keys (true/false)'],
+    ['gitContext', 'הקשר Git אוטומטי (true/false)'],
+  ]) {
+    const answer = await ask(rl, label, config.get(key));
+    config.set(key, parseBoolean(answer, config.get(key)));
+  }
 
-  const strip = await ask(rl, 'הסרת נימוסים (true/false)', config.get('stripPoliteness'));
-  config.set('stripPoliteness', strip === 'true');
+  console.log(c.bold('\n  פיצ\'רים lossy / אופציונליים:\n'));
+  for (const [key, label] of [
+    ['translate', 'תרגום עברית לאנגלית (true/false)'],
+    ['codeCompression', 'כיווץ קוד אוטומטי (true/false)'],
+    ['truncateLargePastes', 'חיתוך קבצים גדולים (true/false)'],
+    ['dedupeLongInput', 'הסרת תוכן כפול (true/false)'],
+    ['responseLengthHints', 'הגבלת אורך תגובה (true/false)'],
+  ]) {
+    const answer = await ask(rl, label, config.get(key));
+    config.set(key, parseBoolean(answer, config.get(key)));
+  }
 
-  const paths = await ask(rl, 'המרת נתיבים מוחלטים (true/false)', config.get('resolvePaths'));
-  config.set('resolvePaths', paths === 'true');
-
-  const logs = await ask(rl, 'קיצוץ לוגים ארוכים (true/false)', config.get('trimLogs'));
-  config.set('trimLogs', logs === 'true');
-
-  const timeGuard = await ask(rl, 'אזהרת שעות עומס (true/false)', config.get('timeGuard'));
-  config.set('timeGuard', timeGuard === 'true');
+  console.log(c.bold('\n  ניהול סשן:\n'));
+  for (const [key, label] of [
+    ['memoryEnabled', 'זיכרון חוצה-סשן (true/false)'],
+    ['promptHistory', 'שמירת היסטוריית פרומפטים (true/false)'],
+    ['timeGuard', 'אזהרת שעות עומס (true/false)'],
+  ]) {
+    const answer = await ask(rl, label, config.get(key));
+    config.set(key, parseBoolean(answer, config.get(key)));
+  }
 
   const costThreshold = await ask(rl, 'סף עלות ל-Handoff אוטומטי (USD)', config.get('costThreshold'));
   config.set('costThreshold', parseFloat(costThreshold));
@@ -59,6 +86,7 @@ async function main() {
   console.log('');
   console.log(c.green('  ✅ ההגדרות נשמרו בהצלחה!'));
   console.log(c.dim(`  קובץ: ${config.path}`));
+  console.log(c.dim('  טיפ: lossy features כמו translate/codeCompression/output hints עדיף להדליק רק כשבאמת צריך.'));
   console.log('');
 }
 

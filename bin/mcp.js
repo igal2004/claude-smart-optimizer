@@ -5,12 +5,12 @@
  * Manage MCP (Model Context Protocol) connections for any AI coding tool.
  *
  * Usage:
- *   cc mcp list                    — show all configured MCPs
- *   cc mcp add <name>              — add a pre-built MCP integration
- *   cc mcp remove <name>           — remove an MCP integration
- *   cc mcp status                  — check which MCPs are active
+ *   ccso mcp list                  — show all configured MCPs
+ *   ccso mcp add <name>            — add a pre-built MCP integration
+ *   ccso mcp remove <name>         — remove an MCP integration
+ *   ccso mcp status                — check which MCPs are active
  *
- * Supported tools: Claude Code, Codex CLI, Cursor, Windsurf
+ * Supported primary targets: Claude Code, Cursor, Windsurf
  */
 
 import * as fs from 'fs';
@@ -185,13 +185,13 @@ async function cmdList() {
     console.log('');
   }
 
-  console.log(c.dim('  הוסף MCP: cc mcp add <שם>   |   הסר: cc mcp remove <שם>'));
+  console.log(c.dim('  הוסף MCP: ccso mcp add <שם>   |   הסר: ccso mcp remove <שם>'));
   console.log('');
 }
 
 async function cmdAdd(mcpKey) {
   if (!mcpKey) {
-    console.log(c.red('\n  שגיאה: ציין שם MCP. לדוגמה: cc mcp add github\n'));
+    console.log(c.red('\n  שגיאה: ציין שם MCP. לדוגמה: ccso mcp add github\n'));
     console.log('  MCPs זמינים: ' + Object.keys(MCP_CATALOG).join(', '));
     return;
   }
@@ -261,7 +261,7 @@ async function cmdAdd(mcpKey) {
 
 async function cmdRemove(mcpKey) {
   if (!mcpKey) {
-    console.log(c.red('\n  שגיאה: ציין שם MCP. לדוגמה: cc mcp remove github\n'));
+    console.log(c.red('\n  שגיאה: ציין שם MCP. לדוגמה: ccso mcp remove github\n'));
     return;
   }
 
@@ -348,7 +348,7 @@ async function main() {
       break;
     default:
       console.log(c.red(`\n  פקודה לא מוכרת: ${subCmd}`));
-      console.log(c.dim('  שימוש: cc mcp [list|add|remove|status]\n'));
+      console.log(c.dim('  שימוש: ccso mcp [list|add|remove|status]\n'));
   }
 }
 

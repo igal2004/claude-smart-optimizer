@@ -1,99 +1,113 @@
-# מדריך התקנה מהיר — בדיקות מקומיות
-
-מדריך זה מיועד להתקנה מקומית לצורך בדיקות, לפני שחרור הפרויקט לציבור.
-
----
+# מדריך התקנה — CCSO
 
 ## דרישות מוקדמות
 
-לפני ההתקנה, ודא שמותקן על המחשב שלך:
+- Node.js 18 ומעלה
+- Claude Code אם רוצים backend מלא ומדידה אמיתית
 
-**Node.js גרסה 18 ומעלה.** לבדיקה הרץ:
+בדיקה:
+
 ```bash
 node --version
-```
-אם הגרסה נמוכה מ-18, הורד מ-[nodejs.org](https://nodejs.org).
-
----
-
-## שלב 1: הורד את הפרויקט
-
-```bash
-git clone https://github.com/YOUR_USERNAME/ccso.git
-cd ccso
+claude --version
 ```
 
-אם אין לך Git, אפשר גם להוריד ZIP מ-GitHub ולחלץ אותו.
-
----
-
-## שלב 2: התקן תלויות
+## התקנה
 
 ```bash
+git clone https://github.com/igal2004/claude-smart-optimizer.git
+cd claude-smart-optimizer
 npm install
-```
-
----
-
-## שלב 3: הרץ את המתקין החכם
-
-```bash
 node bin/install.js
 ```
 
-המתקין יסרוק את המחשב שלך ויזהה אילו כלים מותקנים. עקוב אחרי ההוראות על המסך.
+אחרי ההתקנה:
 
----
+1. פתח טרמינל חדש
+2. או הרץ `source ~/.zshrc` או `source ~/.bashrc` לפי ה-shell שלך
 
-## שלב 4: פתח טרמינל חדש
-
-לאחר ההתקנה, **חובה** לפתוח טרמינל חדש (או להריץ `source ~/.bashrc`) כדי שה-Alias יכנס לתוקף.
-
----
-
-## שלב 5: התחל לעבוד
+## התחלה
 
 ```bash
-cc
+ccso
 ```
 
----
+## דשבורד
+
+```bash
+ccso --dashboard
+```
+
+לשיתוף עם לינק ציבורי:
+
+```bash
+ccso --share-dashboard
+```
+
+הפקודה הזו יוצרת tunnel אל הדשבורד המקומי שלך, ולכן היא מתאימה יותר מ-deploy סטטי אם אתה רוצה לראות את כל הפונקציות האמיתיות.
+
+או בלחיצה כפולה מתוך התיקייה:
+
+```bash
+./הפעל\ CCSO.command
+```
+
+ברירת המחדל:
+
+```text
+http://localhost:3847
+```
 
 ## בדיקת תקינות
 
-כדי לוודא שהכל עובד:
-
 ```bash
-cc --status
+ccso --status
+npm test
 ```
 
-אמור להציג את ההגדרות הנוכחיות.
+## אם `ccso` לא מזוהה
 
----
+- פתח טרמינל חדש
+- או הרץ את קובץ ה-shell שלך מחדש:
+
+```bash
+source ~/.zshrc
+```
+
+או:
+
+```bash
+source ~/.bashrc
+```
 
 ## שינוי הגדרות
 
 ```bash
-cc --config
+ccso --config
 ```
-
----
 
 ## הסרה
 
 ```bash
-cc --uninstall
+ccso --uninstall
 ```
 
----
+## תקלות נפוצות
 
-## פתרון בעיות נפוצות
+### `Backend "claude" not found`
 
-**"cc: command not found" לאחר ההתקנה**
-פתח טרמינל חדש, או הרץ: `source ~/.bashrc` (Linux/Mac) / `source ~/.zshrc` (Zsh).
+Claude Code לא מותקן או לא נמצא ב-`PATH`.
 
-**"Backend 'claude' not found"**
-Claude Code לא מותקן. התקן מ-[claude.ai/code](https://claude.ai/code), ואז הרץ מחדש `cc --config` ובחר את ה-Backend הנכון.
+### הדשבורד לא נפתח
 
-**שגיאת Node.js "ERR_MODULE_NOT_FOUND"**
-הרץ `npm install` בתיקיית הפרויקט.
+נסה:
+
+```bash
+ccso --dashboard
+```
+
+אם פורט `3847` כבר תפוס, CCSO ינסה להתחבר לדשבורד שכבר רץ.
+
+### אין חיסכון בדשבורד למרות שעבדת שעות
+
+זה קורה בדרך כלל כשעבדת בעיקר בתוך IDE חיצוני כמו Cursor. CCSO יכול לעזור שם דרך rules/config, אבל הוא לא מודד את הצ'אט הפנימי של הכלי.

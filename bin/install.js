@@ -2,7 +2,7 @@
 
 /**
  * CCSO Smart Installer
- * Auto-detects installed AI tools and installs the appropriate adapters.
+ * Auto-detects supported AI tools and saves a conservative default config.
  */
 
 import { execSync } from 'child_process';
@@ -10,6 +10,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as readline from 'readline';
+import { fileURLToPath } from 'url';
+import { getCCSOPath } from '../src/core/storage-paths.js';
+import { getDefaultConfig } from '../src/core/default-config.js';
 
 const c = {
   green:  (s) => `\x1b[32m${s}\x1b[0m`,
@@ -20,7 +23,7 @@ const c = {
   red:    (s) => `\x1b[31m${s}\x1b[0m`,
 };
 
-const SCRIPT_DIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const SCRIPT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function detect(cmd) {
   try { execSync(`which ${cmd}`, { stdio: 'ignore' }); return true; } catch { return false; }
@@ -43,6 +46,21 @@ function detectVSCode() {
   return dirs.some(d => fs.existsSync(d));
 }
 
+function detectExtension(prefixes = []) {
+  const dirs = [
+    path.join(os.homedir(), '.vscode', 'extensions'),
+    path.join(os.homedir(), '.cursor', 'extensions'),
+  ];
+
+  return dirs.some((dir) => {
+    if (!fs.existsSync(dir)) return false;
+    return fs.readdirSync(dir).some((entry) => {
+      const lower = entry.toLowerCase();
+      return prefixes.some((prefix) => lower.startsWith(prefix.toLowerCase()));
+    });
+  });
+}
+
 function ask(rl, question) {
   return new Promise(resolve => rl.question(question, resolve));
 }
@@ -58,28 +76,34 @@ async function main() {
   // Auto-detection
   const detected = {
     claudeCode: detect('claude'),
-    codex:      detect('codex'),
     cursor:     detectCursor(),
-    vscode:     detectVSCode(),
+    windsurf:   detect('windsurf') || fs.existsSync('/Applications/Windsurf.app'),
+    copilot:    detectExtension(['github.copilot', 'github.copilot-chat']),
+    gemini:     detectExtension(['google.geminicodeassist', 'googlecloudtools.cloudcode', 'google.cloudcode']),
+    firebaseStudio: false,
+    notebooklm: false,
   };
 
   console.log(`  Claude Code:  ${detected.claudeCode ? c.green('✅ זוהה') : c.dim('❌ לא נמצא')}`);
-  console.log(`  Codex CLI:    ${detected.codex      ? c.green('✅ זוהה') : c.dim('❌ לא נמצא')}`);
   console.log(`  Cursor:       ${detected.cursor     ? c.green('✅ זוהה') : c.dim('❌ לא נמצא')}`);
-  console.log(`  VS Code:      ${detected.vscode     ? c.green('✅ זוהה') : c.dim('❌ לא נמצא')}`);
+  console.log(`  Windsurf:     ${detected.windsurf   ? c.green('✅ זוהה') : c.dim('❌ לא נמצא')}`);
+  console.log(`  Copilot:      ${detected.copilot    ? c.green('✅ זוהה') : c.dim('❌ לא נמצא')}`);
+  console.log(`  Gemini:       ${detected.gemini     ? c.green('✅ זוהה') : c.dim('❌ לא נמצא')}`);
   console.log('');
 
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const shellrc = path.join(os.homedir(), process.env.SHELL?.includes('zsh') ? '.zshrc' : '.bashrc');
 
   // Ask user to confirm or override
-  console.log('  אנא אשר את הכלים שברצונך לתמוך בהם (y/n לכל אחד):\n');
+  console.log('  אנא אשר את האינטגרציות שברצונך להבליט ב-CCSO (y/n לכל אחת):\n');
 
   const choices = {};
   for (const [key, label] of [
-    ['claudeCode', 'Claude Code (CLI Wrapper — מומלץ!)'],
-    ['codex',      'Codex CLI (CLI Wrapper)'],
-    ['cursor',     'Cursor (ניהול .cursorrules ברקע)'],
-    ['vscode',     'VS Code (ניהול .vscode/guidelines.md)'],
+    ['claudeCode', 'Claude Code (Full backend — מומלץ!)'],
+    ['cursor', 'Cursor (Project rules + MCP)'],
+    ['windsurf', 'Windsurf (Project rules + MCP)'],
+    ['copilot', 'GitHub Copilot (instruction file only)'],
+    ['gemini', 'Gemini Code Assist (instruction file only)'],
   ]) {
     const def = detected[key] ? 'y' : 'n';
     const ans = await ask(rl, `  ${label} [${def}]: `);
@@ -90,43 +114,43 @@ async function main() {
   console.log('  🔧 מתקין...\n');
 
   // Install alias in shell profile
-  if (choices.claudeCode || choices.codex) {
-    const backend = choices.claudeCode ? 'claude' : 'codex';
+  if (choices.claudeCode) {
+    const backend = 'claude';
     const alias = `alias ccso='node ${path.join(SCRIPT_DIR, 'bin', 'cc.js')}'`;
     const configLine = `\n# Claude Code Smart Optimizer (CCSO)\nexport CCSO_BACKEND=${backend}\n${alias}\n`;
 
-    const shellrc = path.join(os.homedir(), process.env.SHELL?.includes('zsh') ? '.zshrc' : '.bashrc');
+    if (!fs.existsSync(shellrc)) fs.writeFileSync(shellrc, '');
     if (!fs.readFileSync(shellrc, 'utf8').includes('CCSO')) {
       fs.appendFileSync(shellrc, configLine);
-      console.log(c.green(`  ✅ Alias "cc" נוסף ל-${shellrc}`));
+      console.log(c.green(`  ✅ Alias "ccso" נוסף ל-${shellrc}`));
     } else {
       console.log(c.yellow(`  ℹ️  Alias כבר קיים ב-${shellrc}`));
     }
   }
 
   // Ask about dashboard
-  const dashAns = await ask(rl, '  האם להתקין גם את הדשבורד הויזואלי? (פותח בדפדפן עם cc --dashboard) [Y/n]: ');
+  const dashAns = await ask(rl, '  האם להפעיל גם את הדשבורד הויזואלי? (נפתח עם ccso --dashboard) [Y/n]: ');
   const installDashboard = (dashAns.trim().toLowerCase() || 'y') !== 'n';
   if (installDashboard) {
-    console.log(c.green('  ✅ הדשבורד יהיה זמין דרך: cc --dashboard'));
+    console.log(c.green('  ✅ הדשבורד יהיה זמין דרך: ccso --dashboard'));
   }
   console.log('');
 
   // Save config
-  const configDir = path.join(os.homedir(), '.config', 'claude-smart-optimizer');
+  const configDir = path.dirname(getCCSOPath('config.json'));
   fs.mkdirSync(configDir, { recursive: true });
-  const configPath = path.join(configDir, 'config.json');
+  const configPath = getCCSOPath('config.json');
+  const defaults = getDefaultConfig();
   const config = {
-    backend: choices.claudeCode ? 'claude' : choices.codex ? 'codex' : 'claude',
-    translate: true,
-    stripPoliteness: true,
-    resolvePaths: true,
-    trimLogs: true,
-    timeGuard: true,
-    costThreshold: 0.80,
-    commandThreshold: 25,
-    adapters: choices,
-    dashboard: installDashboard
+    ...defaults,
+    backend: 'claude',
+    adapters: {
+      ...defaults.adapters,
+      ...choices,
+      firebaseStudio: true,
+      notebooklm: true,
+    },
+    dashboard: installDashboard,
   };
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
   console.log(c.green(`  ✅ הגדרות נשמרו ב-${configPath}`));
@@ -136,12 +160,15 @@ async function main() {
   console.log('');
   console.log(c.bold(c.green('  🎉 ההתקנה הושלמה בהצלחה!')));
   console.log('');
+  console.log(c.dim('  ברירות המחדל שמרניות: translate/code compression/output hints כבויים עד שתדליק אותם ידנית.'));
+  console.log('');
   console.log('  כדי להתחיל לעבוד, הרץ:');
-  console.log(c.cyan('    source ~/.bashrc   # (או פתח טרמינל חדש)'));
-  console.log(c.cyan('    cc                 # במקום "claude"'));
+  console.log(c.cyan(`    source ${shellrc}   # (או פתח טרמינל חדש)`));
+  console.log(c.cyan('    ccso               # REPL חכם מעל Claude Code'));
   if (installDashboard) {
-    console.log(c.cyan('    cc --dashboard     # פתיחת דשבורד ויזואלי בדפדפן'));
+    console.log(c.cyan('    ccso --dashboard   # פתיחת דשבורד ויזואלי בדפדפן'));
   }
+  console.log(c.cyan('    ./הפעל\\ CCSO.command  # לחיצה כפולה להפעלה נוחה מהתיקייה'));
   console.log('');
   console.log('  להסרה:');
   console.log(c.dim('    node ' + path.join(SCRIPT_DIR, 'bin', 'uninstall.js')));

@@ -1,7 +1,7 @@
 {
   "name": "claude-smart-optimizer",
   "version": "3.0.0",
-  "description": "Smart CLI wrapper for Claude Code, Codex CLI, Cursor & Windsurf — auto-translation, context management, MCP manager, NotebookLM bridge and more.",
+  "description": "Conservative prompt optimizer for Claude Code with honest dashboard metrics and assisted integrations for Cursor, Windsurf, Copilot, Gemini, Firebase Studio, and NotebookLM.",
   "main": "src/index.js",
   "type": "module",
   "bin": {
@@ -16,14 +16,16 @@
     "mcp": "node bin/mcp.js",
     "notebooklm": "node bin/notebooklm.js",
     "dashboard": "node src/dashboard/server.js",
+    "share-dashboard": "node src/dashboard/share.js",
     "test": "node tests/test.js"
   },
   "keywords": [
     "claude",
     "claude-code",
-    "codex",
     "cursor",
     "windsurf",
+    "copilot",
+    "gemini",
     "ai",
     "cli",
     "optimizer",

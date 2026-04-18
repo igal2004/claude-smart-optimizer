@@ -8,16 +8,17 @@
 
 import * as fs   from 'fs';
 import * as path from 'path';
-import * as os   from 'os';
 import * as crypto from 'crypto';
+import { getCCSOPath } from './storage-paths.js';
 
-const CACHE_DIR = path.join(os.homedir(), '.config', 'claude-smart-optimizer', 'cache');
+const CACHE_DIR = getCCSOPath('cache');
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_KEY_VERSION = 'v2';
 
 export class PromptCache {
   constructor(config) {
     this.enabled = config.get('promptCache') !== false;
-    this.ttlMs   = (config.get('cacheTTLHours') || 24) * 60 * 60 * 1000;
+    this.ttlMs   = (Number(config.get('cacheTTLHours')) || (DEFAULT_TTL_MS / (60 * 60 * 1000))) * 60 * 60 * 1000;
     if (this.enabled) {
       try { fs.mkdirSync(CACHE_DIR, { recursive: true }); } catch { /* ignore */ }
     }
@@ -83,7 +84,20 @@ export class PromptCache {
   }
 
   _file(prompt, model) {
-    const hash = crypto.createHash('sha256').update(model + '::' + prompt.trim()).digest('hex').slice(0, 16);
+    const normalizedPrompt = this._normalizePrompt(prompt);
+    const hash = crypto.createHash('sha256')
+      .update(`${CACHE_KEY_VERSION}::${model}::${normalizedPrompt}`)
+      .digest('hex')
+      .slice(0, 16);
     return path.join(CACHE_DIR, `${hash}.json`);
+  }
+
+  _normalizePrompt(prompt = '') {
+    return String(prompt)
+      .replace(/\r\n?/g, '\n')
+      .split('\n')
+      .map((line) => line.replace(/[ \t]+$/g, ''))
+      .join('\n')
+      .trim();
   }
 }

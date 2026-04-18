@@ -1,30 +1,33 @@
 #!/usr/bin/env node
 
 /**
- * cc — CCSO Smart Optimizer v3.0
- * Main entry point. Works with Claude Code, Codex CLI, Cursor, Windsurf and more.
+ * ccso — CCSO Smart Optimizer v3.0
+ * Main entry point. Best with Claude Code; also manages project rules,
+ * instruction files, MCP config, and companion bridges for other tools.
  *
  * Usage:
- *   cc                        — start the Smart REPL (Claude Code / Codex)
- *   cc --init                 — Smart Init wizard (CLAUDE.md, AGENTS.md, .claudeignore)
- *   cc --dashboard            — open the visual dashboard in browser
- *   cc --config               — interactive settings menu
- *   cc --status               — show current session status
- *   cc --uninstall            — remove CCSO from this machine
- *   cc mcp list               — list available MCP integrations
- *   cc mcp add <name>         — add an MCP integration (github, notion, etc.)
- *   cc mcp remove <name>      — remove an MCP integration
- *   cc mcp status             — show active MCPs per tool
- *   cc notebooklm login       — connect to Google NotebookLM
- *   cc notebooklm list        — list your notebooks
- *   cc notebooklm ask <q>     — query a notebook
- *   cc notebooklm save <text> — save a note to NotebookLM
- *   cc notebooklm status      — check connection status
- *   cc help                   — show this help
+ *   ccso                        — start the Smart REPL (Claude Code backend)
+ *   ccso --init                 — Smart Init wizard (CLAUDE.md, AGENTS.md, .claudeignore)
+ *   ccso --dashboard            — open the visual dashboard in browser
+ *   ccso --share-dashboard      — expose the live local dashboard via a public tunnel
+ *   ccso --config               — interactive settings menu
+ *   ccso --status               — show current session status
+ *   ccso --uninstall            — remove CCSO from this machine
+ *   ccso mcp list               — list available MCP integrations
+ *   ccso mcp add <name>         — add an MCP integration (github, notion, etc.)
+ *   ccso mcp remove <name>      — remove an MCP integration
+ *   ccso mcp status             — show active MCPs per tool
+ *   ccso notebooklm login       — connect to Google NotebookLM
+ *   ccso notebooklm list        — list your notebooks
+ *   ccso notebooklm ask <q>     — query a notebook
+ *   ccso notebooklm save <text> — save a note to NotebookLM
+ *   ccso notebooklm status      — check connection status
+ *   ccso help                   — show this help
  */
 
 import { fileURLToPath } from 'url';
 import * as path from 'path';
+import { ensureDashboardServer, openDashboardBrowser } from '../src/dashboard/control.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -46,34 +49,35 @@ function showHelp() {
   console.log(c.cyan(c.bold('  ╚═══════════════════════════════════════════════╝')));
   console.log('');
   console.log(c.bold('  פקודות בסיסיות:'));
-  console.log(`  ${c.green('cc')}                     פתח Smart REPL (Claude Code / Codex)`);
-  console.log(`  ${c.green('cc --init')}              אשף הגדרת פרויקט (CLAUDE.md + .claudeignore)`);
-  console.log(`  ${c.green('cc --dashboard')}         פתח דשבורד ויזואלי בדפדפן`);
-  console.log(`  ${c.green('cc --config')}            תפריט הגדרות`);
-  console.log(`  ${c.green('cc --status')}            סטטוס סשן נוכחי`);
-  console.log(`  ${c.green('cc --uninstall')}         הסר CCSO`);
+  console.log(`  ${c.green('ccso')}                   פתח Smart REPL (Claude Code backend)`);
+  console.log(`  ${c.green('ccso --init')}            אשף הגדרת פרויקט (CLAUDE.md + .claudeignore)`);
+  console.log(`  ${c.green('ccso --dashboard')}       פתח דשבורד ויזואלי בדפדפן`);
+  console.log(`  ${c.green('ccso --share-dashboard')} שתף את הדשבורד החי דרך לינק ציבורי`);
+  console.log(`  ${c.green('ccso --config')}          תפריט הגדרות`);
+  console.log(`  ${c.green('ccso --status')}          סטטוס סשן נוכחי`);
+  console.log(`  ${c.green('ccso --uninstall')}       הסר CCSO`);
   console.log('');
-  console.log(c.bold('  חיסכון בכל הפלטפורמות:'));
-  console.log(`  ${c.green('cc inject')}              הזרק כללי חיסכון לפרויקט (CLAUDE.md, .cursorrules, Copilot, Windsurf)`);
-  console.log(`  ${c.green('cc inject /path')}        הזרק לתיקייה ספציפית`);
-  console.log(`  ${c.green('cc eject')}               הסר כללי CCSO מהפרויקט`);
+  console.log(c.bold('  אינטגרציות פרויקט לכלים נתמכים:'));
+  console.log(`  ${c.green('ccso inject')}            כתוב קובצי חוקים/הוראות ל-Claude/Cursor/Windsurf/Copilot/Gemini/Firebase`);
+  console.log(`  ${c.green('ccso inject /path')}      הזרק לתיקייה ספציפית`);
+  console.log(`  ${c.green('ccso eject')}             הסר כללי CCSO מהפרויקט`);
   console.log('');
   console.log(c.bold('  ניהול MCP (חיבורים חיצוניים):'));
-  console.log(`  ${c.green('cc mcp list')}            רשימת כל ה-MCPs הזמינים`);
-  console.log(`  ${c.green('cc mcp add github')}      הוסף חיבור ל-GitHub`);
-  console.log(`  ${c.green('cc mcp add notion')}      הוסף חיבור ל-Notion`);
-  console.log(`  ${c.green('cc mcp add memory')}      הוסף זיכרון מתמיד בין סשנים`);
-  console.log(`  ${c.green('cc mcp remove <name>')}   הסר חיבור`);
-  console.log(`  ${c.green('cc mcp status')}          הצג MCPs פעילים לפי כלי`);
+  console.log(`  ${c.green('ccso mcp list')}          רשימת כל ה-MCPs הזמינים`);
+  console.log(`  ${c.green('ccso mcp add github')}    הוסף חיבור ל-GitHub`);
+  console.log(`  ${c.green('ccso mcp add notion')}    הוסף חיבור ל-Notion`);
+  console.log(`  ${c.green('ccso mcp add memory')}    הוסף זיכרון מתמיד בין סשנים`);
+  console.log(`  ${c.green('ccso mcp remove <name>')} הסר חיבור`);
+  console.log(`  ${c.green('ccso mcp status')}        הצג MCPs פעילים לפי כלי`);
   console.log('');
   console.log(c.bold('  NotebookLM Bridge (זיכרון חינמי לקבצי ענק):'));
-  console.log(`  ${c.green('cc notebooklm login')}    התחבר לגוגל (פעם אחת)`);
-  console.log(`  ${c.green('cc notebooklm list')}     הצג מחברות`);
-  console.log(`  ${c.green('cc notebooklm ask "?"')}  שאל שאלה על המחברת`);
-  console.log(`  ${c.green('cc notebooklm save "."')} שמור סיכום למחברת`);
+  console.log(`  ${c.green('ccso notebooklm login')}  התחבר לגוגל (פעם אחת)`);
+  console.log(`  ${c.green('ccso notebooklm list')}   הצג מחברות`);
+  console.log(`  ${c.green('ccso notebooklm ask "?"')} שאל שאלה על המחברת`);
+  console.log(`  ${c.green('ccso notebooklm save "."')} שמור סיכום למחברת`);
   console.log('');
-  console.log(c.dim('  כלים נתמכים: Claude Code, Codex CLI, Cursor, Windsurf'));
-  console.log(c.dim('  GitHub: https://github.com/igal2004/ccso'));
+  console.log(c.dim('  אינטגרציות פעילות: Claude Code backend, Cursor/Windsurf rules, Copilot/Gemini instructions, NotebookLM bridge'));
+  console.log(c.dim('  GitHub: https://github.com/igal2004/claude-smart-optimizer'));
   console.log('');
 }
 
@@ -102,45 +106,52 @@ if (cmd === '--config') {
 if (cmd === '--status') {
   const { loadConfig }     = await import(path.join(__dirname, '..', 'src', 'core', 'config.js'));
   const { ContextMonitor } = await import(path.join(__dirname, '..', 'src', 'core', 'context-monitor.js'));
-  const { detectInstalledTools } = await import(path.join(__dirname, '..', 'src', 'adapters', 'tool-adapter.js'));
+  const { getSupportedPlatformStatuses } = await import(path.join(__dirname, '..', 'src', 'core', 'platform-support.js'));
 
   const config  = loadConfig();
   const monitor = new ContextMonitor(config);
   const s       = monitor.getStatus();
-  const tools   = detectInstalledTools();
+  const tools   = (await getSupportedPlatformStatuses())
+    .filter(tool => tool.availability === 'detected')
+    .map(tool => tool.name);
 
   const c = { cyan: s => `\x1b[36m${s}\x1b[0m`, bold: s => `\x1b[1m${s}\x1b[0m`, dim: s => `\x1b[2m${s}\x1b[0m`, green: s => `\x1b[32m${s}\x1b[0m` };
   console.log('');
   console.log(c.bold(c.cyan('  CCSO v3.0 — סטטוס\n')));
-  console.log(`  כלים שזוהו:       ${tools.join(', ')}`);
+  console.log(`  פלטפורמות נתמכות שזוהו: ${tools.length ? tools.join(', ') : '—'}`);
   console.log(`  Backend פעיל:     ${config.get('backend') || 'claude'}`);
   console.log(`  סף עלות:          $${s.costThreshold}`);
   console.log(`  סף פקודות:        ${s.commandThreshold}`);
   console.log(`  תרגום עברית:      ${config.get('translate') !== false ? c.green('פעיל') : 'כבוי'}`);
-  console.log(`  דשבורד:           cc --dashboard`);
+  console.log(`  דשבורד:           ccso --dashboard`);
   console.log('');
   process.exit(0);
 }
 
 if (cmd === '--dashboard') {
-  const { spawn } = await import('child_process');
-  const serverPath = path.join(__dirname, '..', 'src', 'dashboard', 'server.js');
-  const url = 'http://localhost:3847';
-
   console.log('\n  [CCSO] פותח דשבורד...');
   console.log('  לעצירה: Ctrl+C\n');
+  const { url, ready, alreadyRunning, child } = await ensureDashboardServer({ attached: true });
+  if (!ready) {
+    console.log('  ❌ לא הצלחתי להרים את שרת הדשבורד.\n');
+    process.exit(1);
+  }
 
-  const server = spawn(process.execPath, [serverPath], { stdio: 'inherit' });
+  openDashboardBrowser(url);
 
-  setTimeout(() => {
-    const opener = process.platform === 'darwin' ? 'open'
-                 : process.platform === 'win32'  ? 'start'
-                 : 'xdg-open';
-    spawn(opener, [url], { detached: true, stdio: 'ignore' }).unref();
-  }, 1200);
+  if (alreadyRunning || !child) {
+    console.log(`  ✅ הדשבורד כבר זמין ב-${url}\n`);
+    process.exit(0);
+  }
 
-  server.on('close', () => process.exit(0));
-  // Keep the parent alive — the server.on('close') handler will exit when server stops
+  child.on('close', () => process.exit(0));
+  // Keep the parent alive — the child.on('close') handler will exit when server stops.
+}
+
+if (cmd === '--share-dashboard') {
+  const { shareDashboard } = await import(path.join(__dirname, '..', 'src', 'dashboard', 'share.js'));
+  await shareDashboard();
+  await new Promise(() => {});
 }
 
 if (cmd === 'mcp') {
@@ -191,7 +202,8 @@ if (cmd === 'inject' || cmd === '--inject') {
     console.log(`  ${icon}  ${c.green(r.file.padEnd(42))} ${c.dim(r.note)}`);
   }
   console.log('');
-  console.log(c.bold('  כל כלי AI בפרויקט זה יעבוד עם כללי החיסכון אוטומטית.'));
+  console.log(c.bold('  קובצי הפרויקט הנתמכים עודכנו לכלים ש-CCSO יודע לכתוב עבורם.'));
+  console.log(c.dim('  זה לא נותן ל-CCSO שליטה או מדידה מלאה בתוך כל IDE.\n'));
   console.log(c.dim('  להסרה: ccso eject\n'));
   process.exit(0);
 }
